@@ -1,80 +1,75 @@
 import streamlit as st
 import pandas as pd
 
-# 1. Pengaturan Halaman Utama
+# Pengaturan halaman dasar
 st.set_page_config(
-    page_title="Penyusun Jadwal SMP N 1 Bambanglipuro",
+    page_title="Aplikasi Jadwal Pelajaran SMP N 1 Bambanglipuro",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.title("📅 Sistem Informasi & Alokasi JP Jadwal Pelajaran")
-st.write("Aplikasi visualisasi susunan jadwal pelajaran dan pengaturan target Jam Pelajaran (JP).")
+st.title("📅 Jadwal Pelajaran Berdasarkan Format Susun")
+st.write("Menampilkan susunan jadwal pelajaran per jam dan per kelas sesuai dengan data master.")
 
-# 2. Fungsi Memuat Data Master (Sheet SUSUN)
+# Fungsi untuk memuat data
 @st.cache_data
 def load_data():
+    # Menggunakan file CSV hasil konversi dari sheet SUSUN Anda
+    # Ganti nama file ini sesuai dengan file yang Anda simpan di direktori script Anda
     try:
-        # Mengambil data dari file CSV yang diunggah
         data = pd.read_csv("Jadwal Pelajaran Semua Kelas.xlsx - SUSUN.csv", header=None)
         return data
     except Exception as e:
-        st.error(f"Gagal memuat file CSV: {e}")
+        st.error(f"Gagal memuat file: {e}")
         return None
 
 df = load_data()
 
-# 3. Sidebar: Input Alokasi JP per Mata Pelajaran
-st.sidebar.header("⚙️ Pengaturan Alokasi JP")
-st.sidebar.write("Masukkan target Jam Pelajaran (JP) per minggu untuk setiap mapel:")
-
-# Input manual jumlah JP menggunakan dictionary
-target_jp = {
-    "Bahasa Indonesia": st.sidebar.number_input("Bahasa Indonesia (JP)", min_value=0, max_value=10, value=4),
-    "Matematika": st.sidebar.number_input("Matematika (JP)", min_value=0, max_value=10, value=4),
-    "IPA": st.sidebar.number_input("IPA (JP)", min_value=0, max_value=10, value=4),
-    "Bahasa Inggris": st.sidebar.number_input("Bahasa Inggris (JP)", min_value=0, max_value=10, value=4),
-    "PAI (Agama)": st.sidebar.number_input("PAI / Agama (JP)", min_value=0, max_value=10, value=3),
-    "PPKn": st.sidebar.number_input("PPKn (JP)", min_value=0, max_value=10, value=2),
-    "IPS": st.sidebar.number_input("IPS (JP)", min_value=0, max_value=10, value=4),
-    "Seni Budaya / Prakarya": st.sidebar.number_input("Seni Budaya / Prakarya (JP)", min_value=0, max_value=10, value=3),
-    "PJOK": st.sidebar.number_input("PJOK (JP)", min_value=0, max_value=10, value=3),
-    "Bahasa Jawa": st.sidebar.number_input("Bahasa Jawa (JP)", min_value=0, max_value=10, value=2),
-    "Informatika / TIK": st.sidebar.number_input("Informatika / TIK (JP)", min_value=0, max_value=10, value=2),
-}
-
-# Menampilkan ringkasan target JP yang dimasukkan pengguna dalam bentuk tabel kecil di sidebar
-with st.sidebar.expander("📊 Lihat Ringkasan Target JP"):
-    df_target = pd.DataFrame(list(target_jp.items()), columns=["Mata Pelajaran", "Target JP per Minggu"])
-    st.dataframe(df_target, use_container_width=True, hide_index=True)
-
-
-# 4. Menampilkan Tampilan Jadwal Format SUSUN
 if df is not None:
-    st.subheader("📋 Grid Susunan Jadwal Pelajaran (Format Excel)")
-    st.info("💡 Geser tabel ke kanan (scroll horizontal) untuk melihat kelas lain dan hari berikutnya.")
+    # Memproses header seperti tampilan excel Anda
+    # Baris 0: Semester/Tahun Ajaran (Info judul tambahan)
+    # Baris 1: Nama Hari (SENIN, SELASA, dst)
+    # Baris 2: Nama Kelas (7A, 7B, 8A, dst)
     
-    # Mengisi nilai kosong agar rapi secara visual
+    st.info("💡 Gunakan fitur scroll horizontal pada tabel di bawah untuk melihat jadwal kelas 8, kelas 9, serta hari berikutnya.")
+    
+    # Membersihkan tampilan DataFrame agar baris atas menjadi header visual
+    # Mengganti baris NaN dengan string kosong untuk keindahan visual
     df_filled = df.fillna("")
     
-    # Tampilkan grid utama jadwal pelajaran
-    st.dataframe(df_filled, use_container_width=True, height=450)
+    # Kustomisasi CSS agar tabel streamlit menyerupai grid Excel yang rapi
+    st.markdown("""
+        <style>
+        .reportview-container .main .block-container{
+            max-width: 95%;
+        }
+        div[data-testid="stDataFrame"] {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        </style>
+        """, unsafe_allow_html=True)
     
-    # 5. Fitur Filter Cepat Berdasarkan Hari
-    st.markdown("---")
-    st.subheader("🔍 Filter Jadwal Berdasarkan Hari")
-    pilihan_hari = st.selectbox("Pilih Hari:", ["Semua Hari", "SENIN", "SELASA"])
+    # Menampilkan keseluruhan grid jadwal sesuai struktur file asli Anda
+    # Kita menggunakan st.dataframe dengan ukuran kontainer penuh
+    st.dataframe(df_filled, use_container_width=True, height=600)
     
-    if pilihan_hari == "SENIN":
-        st.write("**Menampilkan Jadwal Khusus Hari SENIN (Semua Kelas 7, 8, 9)**")
-        df_hari = df_filled.iloc[:, :46]
-        st.dataframe(df_hari, use_container_width=True)
-    elif pilihan_hari == "SELASA":
-        st.write("**Menampilkan Jadwal Khusus Hari SELASA (Semua Kelas 7, 8, 9)**")
-        kolom_selasa = [0] + list(range(46, 92))
-        kolom_selasa = [k for k in kolom_selasa if k < len(df_filled.columns)]
-        df_hari = df_filled.iloc[:, kolom_selasa]
-        st.dataframe(df_hari, use_container_width=True)
-
+    # Fitur Tambahan: Filter Berdasarkan Hari agar lebih mudah dibaca
+    st.sidebar.header("🛠️ Panel Kontrol Tampilan")
+    pilihan_hari = st.sidebar.selectbox("Pilih Hari untuk Difilter:", ["Semua Hari", "SENIN", "SELASA"])
+    
+    if pilihan_hari != "Semua Hari":
+        st.subheader(f"📌 Tampilan Khusus Hari {pilihan_hari}")
+        # Logika sederhana memotong kolom berdasarkan struktur koordinat file Anda
+        if pilihan_hari == "SENIN":
+            # Hari Senin biasanya ada di kolom awal setelah JAM KE (kolom index 0 sampai 45)
+            df_hari = df_filled.iloc[:, :46]
+            st.dataframe(df_hari, use_container_width=True)
+        elif pilihan_hari == "SELASA":
+            # Hari Selasa dimulai dari pembatas kolom berikutnya (kolom index 0 untuk JAM KE, dan kolom 46 ke atas)
+            kolom_selasa = [0] + list(range(46, 92))
+            # Memastikan index tidak out of bounds
+            kolom_selasa = [k for k in kolom_selasa if k < len(df_filled.columns)]
+            df_hari = df_filled.iloc[:, kolom_selasa]
+            st.dataframe(df_hari, use_container_width=True)
 else:
-    st.warning("Pastikan file `Jadwal Pelajaran Semua Kelas.xlsx - SUSUN.csv` sudah diletakkan di folder aplikasi Anda.")
+    st.warning("Silakan pastikan file `Jadwal Pelajaran Semua Kelas.xlsx - SUSUN.csv` berada dalam satu folder dengan aplikasi ini.")
