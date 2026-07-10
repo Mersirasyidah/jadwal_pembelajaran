@@ -15,11 +15,13 @@ st.write("Aplikasi visualisasi susunan jadwal pelajaran dan pengaturan target Ja
 @st.cache_data
 def load_data():
     try:
-        # Mengambil data dari file CSV yang diunggah
-        data = pd.read_csv("Jadwal Pelajaran Semua Kelas.xlsx - SUSUN.csv", header=None)
+        # Menggunakan nama file aktual yang Anda miliki
+        nama_file = "Jadwal_SMP_N_1_Bambanglipuro_TA_2025-2026_narwi_final_LATIHAN.xlsx - SUSUN.csv"
+        data = pd.read_csv(nama_file, header=None)
         return data
     except Exception as e:
         st.error(f"Gagal memuat file CSV: {e}")
+        st.info("Pastikan file tersebut berada di dalam folder yang sama dengan file script berekstensi .py Anda.")
         return None
 
 df = load_data()
@@ -28,7 +30,7 @@ df = load_data()
 st.sidebar.header("⚙️ Pengaturan Alokasi JP")
 st.sidebar.write("Masukkan target Jam Pelajaran (JP) per minggu untuk setiap mapel:")
 
-# Input manual jumlah JP menggunakan dictionary
+# Input manual jumlah JP menggunakan dictionary sesuai kebutuhan Anda (Contoh: Bahasa Indonesia = 4 JP)
 target_jp = {
     "Bahasa Indonesia": st.sidebar.number_input("Bahasa Indonesia (JP)", min_value=0, max_value=10, value=4),
     "Matematika": st.sidebar.number_input("Matematika (JP)", min_value=0, max_value=10, value=4),
@@ -43,7 +45,7 @@ target_jp = {
     "Informatika / TIK": st.sidebar.number_input("Informatika / TIK (JP)", min_value=0, max_value=10, value=2),
 }
 
-# Menampilkan ringkasan target JP yang dimasukkan pengguna dalam bentuk tabel kecil di sidebar
+# Menampilkan ringkasan target JP yang dimasukkan pengguna dalam bentuk tabel di sidebar
 with st.sidebar.expander("📊 Lihat Ringkasan Target JP"):
     df_target = pd.DataFrame(list(target_jp.items()), columns=["Mata Pelajaran", "Target JP per Minggu"])
     st.dataframe(df_target, use_container_width=True, hide_index=True)
@@ -75,6 +77,3 @@ if df is not None:
         kolom_selasa = [k for k in kolom_selasa if k < len(df_filled.columns)]
         df_hari = df_filled.iloc[:, kolom_selasa]
         st.dataframe(df_hari, use_container_width=True)
-
-else:
-    st.warning("Pastikan file `Jadwal Pelajaran Semua Kelas.xlsx - SUSUN.csv` sudah diletakkan di folder aplikasi Anda.")
