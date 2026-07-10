@@ -1,62 +1,79 @@
 import streamlit as st
 import pandas as pd
 
-# 1. Pengaturan Konfigurasi Halaman Streamlit
+# 1. Pengaturan Halaman Utama
 st.set_page_config(
-    page_title="Viewer Jadwal Sekolah SMP N 1 Bambanglipuro",
+    page_title="Penyusun Jadwal SMP N 1 Bambanglipuro",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.title("📅 Aplikasi Viewer Jadwal Sekolah")
-st.caption("Membaca file: Jadwal_SMP_N_1_Bambanglipuro_TA_2025-2026_narwi_final_LATIHAN.xlsx")
+st.title("📅 Sistem Informasi & Alokasi JP Jadwal Pelajaran")
+st.write("Aplikasi visualisasi susunan jadwal pelajaran dan pengaturan target Jam Pelajaran (JP).")
 
-# Nama file target (pastikan file ini berada di folder yang sama dengan app.py)
-FILE_NAME = "Jadwal_SMP_N_1_Bambanglipuro_TA_2025-2026_narwi_final_LATIHAN.xlsx"
+# 2. Fungsi Memuat Data Master (Sheet SUSUN)
+@st.cache_data
+def load_data():
+    try:
+        # Menggunakan nama file aktual yang Anda miliki
+        nama_file = "Jadwal_SMP_N_1_Bambanglipuro_TA_2025-2026_narwi_final_LATIHAN.xlsx - SUSUN.csv"
+        data = pd.read_csv(nama_file, header=None)
+        return data
+    except Exception as e:
+        st.error(f"Gagal memuat file CSV: {e}")
+        st.info("Pastikan file tersebut berada di dalam folder yang sama dengan file script berekstensi .py Anda.")
+        return None
 
-# 2. Sidebar untuk Navigasi Sheet
-st.sidebar.header("Navigasi Data")
-sheet_pilihan = st.sidebar.selectbox(
-    "Pilih Sheet yang ingin ditampilkan:",
-    ["HARIAN", "REK-KELAS", "DATA_WALIKELAS", "Tbh", "REK-PERGURU", "ABSENT"]
-)
+df = load_data()
 
-# 3. Proses Membaca Data dengan Error Handling agar tidak Tampil Blank
-try:
-    # Menggunakan engine 'openpyxl' untuk membaca format .xlsx dengan aman
-    # Kita gunakan try-except agar jika satu sheet error, aplikasi tidak mati total (blank)
-    df = pd.read_excel(FILE_NAME, sheet_name=sheet_pilihan, engine="openpyxl")
+# 3. Sidebar: Input Alokasi JP per Mata Pelajaran
+st.sidebar.header("⚙️ Pengaturan Alokasi JP")
+st.sidebar.write("Masukkan target Jam Pelajaran (JP) per minggu untuk setiap mapel:")
+
+# Input manual jumlah JP menggunakan dictionary sesuai kebutuhan Anda (Contoh: Bahasa Indonesia = 4 JP)
+target_jp = {
+    "Bahasa Indonesia": st.sidebar.number_input("Bahasa Indonesia (JP)", min_value=0, max_value=10, value=4),
+    "Matematika": st.sidebar.number_input("Matematika (JP)", min_value=0, max_value=10, value=4),
+    "IPA": st.sidebar.number_input("IPA (JP)", min_value=0, max_value=10, value=4),
+    "Bahasa Inggris": st.sidebar.number_input("Bahasa Inggris (JP)", min_value=0, max_value=10, value=4),
+    "PAI (Agama)": st.sidebar.number_input("PAI / Agama (JP)", min_value=0, max_value=10, value=3),
+    "PPKn": st.sidebar.number_input("PPKn (JP)", min_value=0, max_value=10, value=2),
+    "IPS": st.sidebar.number_input("IPS (JP)", min_value=0, max_value=10, value=4),
+    "Seni Budaya / Prakarya": st.sidebar.number_input("Seni Budaya / Prakarya (JP)", min_value=0, max_value=10, value=3),
+    "PJOK": st.sidebar.number_input("PJOK (JP)", min_value=0, max_value=10, value=3),
+    "Bahasa Jawa": st.sidebar.number_input("Bahasa Jawa (JP)", min_value=0, max_value=10, value=2),
+    "Informatika / TIK": st.sidebar.number_input("Informatika / TIK (JP)", min_value=0, max_value=10, value=2),
+}
+
+# Menampilkan ringkasan target JP yang dimasukkan pengguna dalam bentuk tabel di sidebar
+with st.sidebar.expander("📊 Lihat Ringkasan Target JP"):
+    df_target = pd.DataFrame(list(target_jp.items()), columns=["Mata Pelajaran", "Target JP per Minggu"])
+    st.dataframe(df_target, use_container_width=True, hide_index=True)
+
+
+# 4. Menampilkan Tampilan Jadwal Format SUSUN
+if df is not None:
+    st.subheader("📋 Grid Susunan Jadwal Pelajaran (Format Excel)")
+    st.info("💡 Geser tabel ke kanan (scroll horizontal) untuk melihat kelas lain dan hari berikutnya.")
     
-    # 4. Pembersihan Data Otomatis (Data Cleaning)
-    # Menghapus baris atau kolom yang seluruhnya kosong (NaN) agar tidak memberatkan render Streamlit
-    df_clean = df.dropna(how='all')
+    # Mengisi nilai kosong agar rapi secara visual
+    df_filled = df.fillna("")
     
-    # Menghapus kolom yang seluruhnya kosong
-    df_clean = df_clean.dropna(axis=1, how='all')
+    # Tampilkan grid utama jadwal pelajaran
+    st.dataframe(df_filled, use_container_width=True, height=450)
     
-    # Mengisi nilai NaN yang tersisa dengan string kosong agar tampilan lebih rapi
-    df_clean = df_clean.fillna("")
-
-    # 5. Menampilkan Data ke Streamlit
-    st.subheader(f"📄 Data pada Lembar: {sheet_pilihan}")
-    st.write(f"Menampilkan {df_clean.shape[0]} baris data yang terisi.")
+    # 5. Fitur Filter Cepat Berdasarkan Hari
+    st.markdown("---")
+    st.subheader("🔍 Filter Jadwal Berdasarkan Hari")
+    pilihan_hari = st.selectbox("Pilih Hari:", ["Semua Hari", "SENIN", "SELASA"])
     
-    # Menggunakan st.dataframe agar tabel bisa di-scroll, di-search, dan di-download oleh user
-    st.dataframe(df_clean, use_container_width=True)
-
-except FileNotFoundError:
-    st.error(f"❌ **File Tidak Ditemukan!** Pastikan file `{FILE_NAME}` sudah diletakkan di folder yang sama dengan kode `app.py` ini.")
-    
-except Exception as e:
-    st.error(f"❌ **Terjadi Kesalahan saat Membaca Sheet '{sheet_pilihan}':**")
-    st.info("Hal ini biasanya terjadi karena rumus Excel yang terlalu kompleks atau adanya proteksi cell.")
-    # Menampilkan detail error di bawah box agar memudahkan debugging
-    st.code(str(e), language="python")
-
-# 6. Tips Tambahan di Sidebar
-st.sidebar.markdown("---")
-st.sidebar.info(
-    "💡 **Tips Jika Mengalami Blank:**\n"
-    "1. Pastikan library `openpyxl` sudah terinstal (`pip install openpyxl`).\n"
-    "2. Jika data masih kosong, pastikan identitas sekolah pada file Excel asli sudah diisi."
-)
+    if pilihan_hari == "SENIN":
+        st.write("**Menampilkan Jadwal Khusus Hari SENIN (Semua Kelas 7, 8, 9)**")
+        df_hari = df_filled.iloc[:, :46]
+        st.dataframe(df_hari, use_container_width=True)
+    elif pilihan_hari == "SELASA":
+        st.write("**Menampilkan Jadwal Khusus Hari SELASA (Semua Kelas 7, 8, 9)**")
+        kolom_selasa = [0] + list(range(46, 92))
+        kolom_selasa = [k for k in kolom_selasa if k < len(df_filled.columns)]
+        df_hari = df_filled.iloc[:, kolom_selasa]
+        st.dataframe(df_hari, use_container_width=True)
