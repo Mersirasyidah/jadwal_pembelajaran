@@ -3,77 +3,91 @@ import pandas as pd
 
 # 1. Pengaturan Halaman Utama
 st.set_page_config(
-    page_title="Penyusun Jadwal SMP N 1 Bambanglipuro",
+    page_title="Sistem Jadwal SMP N 1 Bambanglipuro",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.title("📅 Sistem Informasi & Alokasi JP Jadwal Pelajaran")
-st.write("Aplikasi visualisasi susunan jadwal pelajaran dan pengaturan target Jam Pelajaran (JP).")
+st.title("📅 Sistem Informasi Kurikulum & Alokasi JP")
+st.write("Aplikasi manajemen data master guru, pembagian kelas ampunan, dan pengaturan target Jam Pelajaran (JP).")
 
-# 2. Fungsi Memuat Data Master (Sheet SUSUN)
+# 2. DATA MASTER GURU & JP (Dibuat langsung di dalam kode agar terhindar dari Error No Such File)
 @st.cache_data
-def load_data():
-    try:
-        # Menggunakan nama file aktual yang Anda miliki
-        nama_file = "Jadwal_SMP_N_1_Bambanglipuro_TA_2025-2026_narwi_final_LATIHAN.xlsx - SUSUN.csv"
-        data = pd.read_csv(nama_file, header=None)
-        return data
-    except Exception as e:
-        st.error(f"Gagal memuat file CSV: {e}")
-        st.info("Pastikan file tersebut berada di dalam folder yang sama dengan file script berekstensi .py Anda.")
-        return None
+def get_data_master_default():
+    # Data ini disesuaikan dengan contoh sampel data SMP N 1 Bambanglipuro
+    data_guru = [
+        {"No": 1, "Nama Guru": "KIRNO WIDARSO, M.Pd., M.M", "Mata Pelajaran": "Kepala Sekolah / PAI", "Kelas Ampuan": "7A, 7B", "JP per Kelas": 2, "Total JP": 4},
+        {"No": 2, "Nama Guru": "Hartini, M.Pd", "Mata Pelajaran": "Bahasa Indonesia", "Kelas Ampuan": "7A, 7B, 7C, 7D", "JP per Kelas": 4, "Total JP": 16},
+        {"No": 3, "Nama Guru": "Bartina, S.Pd", "Mata Pelajaran": "Matematika", "Kelas Ampuan": "8D, 9F", "JP per Kelas": 4, "Total JP": 8},
+        {"No": 4, "Nama Guru": "Ani Pujiastuti, M.Hum", "Mata Pelajaran": "Bahasa Inggris", "Kelas Ampuan": "7A, 7B, 7C", "JP per Kelas": 4, "Total JP": 12},
+        {"No": 5, "Nama Guru": "Agus Fuadi, M.Pd", "Mata Pelajaran": "IPA", "Kelas Ampuan": "9E, 9F", "JP per Kelas": 5, "Total JP": 10},
+        {"No": 6, "Nama Guru": "Dra. Isti Widayanti", "Mata Pelajaran": "IPS", "Kelas Ampuan": "7D, 7F", "JP per Kelas": 4, "Total JP": 8},
+        {"No": 7, "Nama Guru": "Martina Supraptini, S.Pd", "Mata Pelajaran": "Seni Budaya", "Kelas Ampuan": "8A, 8B, 8C", "JP per Kelas": 3, "Total JP": 9},
+        {"No": 8, "Nama Guru": "Dwi Indriyani, S.Pd", "Mata Pelajaran": "Bahasa Jawa", "Kelas Ampuan": "9B, 9C", "JP per Kelas": 2, "Total JP": 4},
+        {"No": 9, "Nama Guru": "Sugiyanto, M.Pd", "Mata Pelajaran": "PJOK", "Kelas Ampuan": "8C, 8G", "JP per Kelas": 3, "Total JP": 6},
+        {"No": 10, "Nama Guru": "Siti Herwulan, S.Pd", "Mata Pelajaran": "Matematika", "Kelas Ampuan": "7G, 8A", "JP per Kelas": 4, "Total JP": 8},
+        {"No": 11, "Nama Guru": "Sunarwi, S.Pd", "Mata Pelajaran": "PPKn", "Kelas Ampuan": "7E, 7F", "JP per Kelas": 2, "Total JP": 4},
+        {"No": 12, "Nama Guru": "Herlita Dewi Setyawati, S.Pd", "Mata Pelajaran": "Informatika / TIK", "Kelas Ampuan": "7F, 7G", "JP per Kelas": 2, "Total JP": 4}
+    ]
+    return pd.DataFrame(data_guru)
 
-df = load_data()
+# Menyimpan data master ke dalam session state agar perubahan data bersifat interaktif
+if 'df_master' not in st.session_state:
+    st.session_state.df_master = get_data_master_default()
 
-# 3. Sidebar: Input Alokasi JP per Mata Pelajaran
-st.sidebar.header("⚙️ Pengaturan Alokasi JP")
-st.sidebar.write("Masukkan target Jam Pelajaran (JP) per minggu untuk setiap mapel:")
+# 3. FITUR UTAMA: DATA MASTER GURU (Bisa Diedit Langsung)
+st.subheader("📋 Data Master Guru & Alokasi Mengampu")
+st.info("💡 Anda dapat mengubah langsung isi tabel di bawah ini (klik dua kali pada cell). Total JP otomatis terhitung jika Anda mengubah Kelas Ampuan atau JP per Kelas.")
 
-# Input manual jumlah JP menggunakan dictionary sesuai kebutuhan Anda (Contoh: Bahasa Indonesia = 4 JP)
-target_jp = {
-    "Bahasa Indonesia": st.sidebar.number_input("Bahasa Indonesia (JP)", min_value=0, max_value=10, value=4),
-    "Matematika": st.sidebar.number_input("Matematika (JP)", min_value=0, max_value=10, value=4),
-    "IPA": st.sidebar.number_input("IPA (JP)", min_value=0, max_value=10, value=4),
-    "Bahasa Inggris": st.sidebar.number_input("Bahasa Inggris (JP)", min_value=0, max_value=10, value=4),
-    "PAI (Agama)": st.sidebar.number_input("PAI / Agama (JP)", min_value=0, max_value=10, value=3),
-    "PPKn": st.sidebar.number_input("PPKn (JP)", min_value=0, max_value=10, value=2),
-    "IPS": st.sidebar.number_input("IPS (JP)", min_value=0, max_value=10, value=4),
-    "Seni Budaya / Prakarya": st.sidebar.number_input("Seni Budaya / Prakarya (JP)", min_value=0, max_value=10, value=3),
-    "PJOK": st.sidebar.number_input("PJOK (JP)", min_value=0, max_value=10, value=3),
-    "Bahasa Jawa": st.sidebar.number_input("Bahasa Jawa (JP)", min_value=0, max_value=10, value=2),
-    "Informatika / TIK": st.sidebar.number_input("Informatika / TIK (JP)", min_value=0, max_value=10, value=2),
-}
+# Menampilkan editor tabel data master
+edited_df = st.data_editor(
+    st.session_state.df_master, 
+    use_container_width=True, 
+    num_rows="dynamic",
+    hide_index=True
+)
 
-# Menampilkan ringkasan target JP yang dimasukkan pengguna dalam bentuk tabel di sidebar
-with st.sidebar.expander("📊 Lihat Ringkasan Target JP"):
-    df_target = pd.DataFrame(list(target_jp.items()), columns=["Mata Pelajaran", "Target JP per Minggu"])
-    st.dataframe(df_target, use_container_width=True, hide_index=True)
+# Tombol untuk kalkulasi ulang total JP berdasarkan input pengguna
+if st.button("🔄 Hitung Ulang & Simpan Data Master"):
+    # Fungsi menghitung jumlah kelas (misal "7A, 7B" = 2 kelas)
+    def hitung_total_jp(row):
+        try:
+            list_kelas = str(row["Kelas Ampuan"]).split(",")
+            jumlah_kelas = len([k.strip() for k in list_kelas if k.strip() != ""])
+            return jumlah_kelas * int(row["JP per Kelas"])
+        except:
+            return 0
 
+    edited_df["Total JP"] = edited_df.apply(hitung_total_jp, axis=1)
+    st.session_state.df_master = edited_df
+    st.success("Data Master berhasil diperbarui dan disinkronkan!")
+    st.rerun()
 
-# 4. Menampilkan Tampilan Jadwal Format SUSUN
-if df is not None:
-    st.subheader("📋 Grid Susunan Jadwal Pelajaran (Format Excel)")
-    st.info("💡 Geser tabel ke kanan (scroll horizontal) untuk melihat kelas lain dan hari berikutnya.")
+# 4. RINGKASAN AGREGASI JP (Metrik Dashboard)
+st.markdown("---")
+st.subheader("📊 Analisis Distribusi Jam Pelajaran (JP)")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    total_guru = len(st.session_state.df_master)
+    st.metric(label="Jumlah Guru Aktif", value=f"{total_guru} Orang")
+with col2:
+    total_kumulatif_jp = st.session_state.df_master["Total JP"].sum()
+    st.metric(label="Total Beban JP Sekolah / Minggu", value=f"{total_kumulatif_jp} JP")
+with col3:
+    rata_rata_jp = st.session_state.df_master["JP per Kelas"].mean()
+    st.metric(label="Rata-rata JP per Mapel", value=f"{rata_rata_jp:.1f} JP")
+
+# 5. PILIHAN BACKUP: JIKA TETAP INGIN MEMUAT FILE EXCEL/CSV JADWAL
+st.markdown("---")
+with st.expander("📂 Opsi Lanjutan: Muat File Jadwal Sinkronisasi Excel (Format SUSUN)"):
+    st.write("Jika Anda memiliki file CSV jadwal mingguan, Anda bisa mengunggahnya secara langsung di bawah ini untuk menghindari error direktori folder:")
+    uploaded_file = st.file_uploader("Pilih file CSV Jadwal (Format SUSUN)", type=["csv"])
     
-    # Mengisi nilai kosong agar rapi secara visual
-    df_filled = df.fillna("")
-    
-    # Tampilkan grid utama jadwal pelajaran
-    st.dataframe(df_filled, use_container_width=True, height=450)
-    
-    # 5. Fitur Filter Cepat Berdasarkan Hari
-    st.markdown("---")
-    st.subheader("🔍 Filter Jadwal Berdasarkan Hari")
-    pilihan_hari = st.selectbox("Pilih Hari:", ["Semua Hari", "SENIN", "SELASA"])
-    
-    if pilihan_hari == "SENIN":
-        st.write("**Menampilkan Jadwal Khusus Hari SENIN (Semua Kelas 7, 8, 9)**")
-        df_hari = df_filled.iloc[:, :46]
-        st.dataframe(df_hari, use_container_width=True)
-    elif pilihan_hari == "SELASA":
-        st.write("**Menampilkan Jadwal Khusus Hari SELASA (Semua Kelas 7, 8, 9)**")
-        kolom_selasa = [0] + list(range(46, 92))
-        kolom_selasa = [k for k in kolom_selasa if k < len(df_filled.columns)]
-        df_hari = df_filled.iloc[:, kolom_selasa]
-        st.dataframe(df_hari, use_container_width=True)
+    if uploaded_file is not None:
+        try:
+            df_excel = pd.read_csv(uploaded_file, header=None).fillna("")
+            st.write("✅ File Berhasil Dimuat:")
+            st.dataframe(df_excel, use_container_width=True)
+        except Exception as e:
+            st.error(f"Gagal membaca file: {e}")
