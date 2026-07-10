@@ -1,75 +1,170 @@
 import streamlit as st
 import pandas as pd
 
-# Pengaturan halaman dasar
-st.set_page_config(
-    page_title="Aplikasi Jadwal Pelajaran SMP N 1 Bambanglipuro",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# 1. Konfigurasi Halaman & State
+st.set_page_config(page_title="Sistem Database Jadwal SMP", layout="wide")
 
-st.title("📅 Jadwal Pelajaran Berdasarkan Format Susun")
-st.write("Menampilkan susunan jadwal pelajaran per jam dan per kelas sesuai dengan data master.")
+# Database awal (Mapping Guru, Mapel, dan Kelas yang diampu)
+# Kamu bisa menambah/mengubah daftar ini langsung dari aplikasi
+if 'database_guru' not in st.session_state:
+    st.session_state.database_guru = [
+        {"kode": "4", "nama": "Ani Pujiastuti, M.Hum", "mapel": "Bahasa Inggris", "kelas_diampu": ["7A", "7B", "7C"]},
+        {"kode": "5", "nama": "Agus Fuadi, M.Pd", "mapel": "IPA", "kelas_diampu": ["9E", "9F"]},
+        {"kode": "42", "nama": "Sunarwi, S.Pd", "mapel": "PKN", "kelas_diampu": ["7E", "7F"]},
+        {"kode": "2", "nama": "Hartini, M.Pd", "mapel": "Matematika", "kelas_diampu": ["8A", "8B"]},
+        {"kode": "3", "nama": "Bartina, S.Pd", "mapel": "Bahasa Indonesia", "kelas_diampu": ["8D", "8E"]}
+    ]
 
-# Fungsi untuk memuat data
-@st.cache_data
-def load_data():
-    # Menggunakan file CSV hasil konversi dari sheet SUSUN Anda
-    # Ganti nama file ini sesuai dengan file yang Anda simpan di direktori script Anda
-    try:
-        data = pd.read_csv("Jadwal Pelajaran Semua Kelas.xlsx - SUSUN.csv", header=None)
-        return data
-    except Exception as e:
-        st.error(f"Gagal memuat file: {e}")
-        return None
+if 'plotting_jadwal' not in st.session_state:
+    st.session_state.plotting_jadwal = []
 
-df = load_data()
+# Data Master Sekolah
+tingkatan = ['7', '8', '9']
+abjad = ['A', 'B', 'C', 'D', 'E']
+list_kelas = [f"{t}{a}" for t in tingkatan for a in abjad]
+list_hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat']
 
-if df is not None:
-    # Memproses header seperti tampilan excel Anda
-    # Baris 0: Semester/Tahun Ajaran (Info judul tambahan)
-    # Baris 1: Nama Hari (SENIN, SELASA, dst)
-    # Baris 2: Nama Kelas (7A, 7B, 8A, dst)
+st.title("🗃️ Sistem Database Pengajar & Generator Jadwal")
+st.caption("Aplikasi otomatis mencocokkan guru dengan kelas yang diampunya untuk menghindari salah input.")
+
+# 2. TABS UNTUK MEMISAHKAN MENU
+tab1, tab2, tab3 = st.tabs(["👥 1. Database Guru & Ampuan", "📅 2. Plotting Jadwal Harian", "📊 3. Hasil Jadwal"])
+
+# ==================== TAB 1: DATABASE GURU ====================
+with tab1:
+    st.subheader("Manajemen Guru dan Kelas yang Diampu")
     
-    st.info("💡 Gunakan fitur scroll horizontal pada tabel di bawah untuk melihat jadwal kelas 8, kelas 9, serta hari berikutnya.")
+    # Form Tambah Guru Baru ke Database
+    with st.expander("➕ Tambah Guru & Kelas Ampuan Baru"):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            new_nama = st.text_input("Nama Guru Baru:")
+        with c2:
+            new_mapel = st.text_input("Mata Pelajaran:")
+        with c3:
+            new_kelas = st.multiselect("Kelas yang Diampu:", list_kelas)
+            
+        if st.button("Simpan ke Database"):
+            if new_nama and new_mapel and new_kelas:
+                st.session_state.database_guru.append({
+                    "kode": str(len(st.session_state.database_guru) + 1),
+                    "nama": new_nama,
+                    "mapel": new_mapel,
+                    "kelas_diampu": new_kelas
+                })
+                st.success(f"Berhasil menambahkan {new_nama} ke database!")
+                st.rerun()
+            else:
+                st.error("Semua data form wajib diisi/dipilih!")
+
+    # Tampilkan Data Tabel Guru Saat Ini
+    df_guru = pd.DataFrame(st.session_state.database_guru)
+    df_guru['kelas_diampu'] = df_guru['kelas_diampu'].apply(lambda x: ", ".join(x))
+    st.dataframe(df_guru, use_container_width=True)
+
+# ==================== TAB 2: PLOTTING JADWAL ====================
+with tab2:
+    st.subheader("⏰ Input Jadwal Berdasarkan Database Guru")
     
-    # Membersihkan tampilan DataFrame agar baris atas menjadi header visual
-    # Mengganti baris NaN dengan string kosong untuk keindahan visual
-    df_filled = df.fillna("")
+    col_input, col_info = st.columns([1, 1])
     
-    # Kustomisasi CSS agar tabel streamlit menyerupai grid Excel yang rapi
-    st.markdown("""
-        <style>
-        .reportview-container .main .block-container{
-            max-width: 95%;
-        }
-        div[data-testid="stDataFrame"] {
-            font-family: 'Courier New', Courier, monospace;
-        }
-        </style>
-        """, unsafe_allow_html=True)
+    with col_input:
+        # Pilihan Guru mengambil dari Database di Tab 1
+        list_nama_guru = [g['nama'] for g in st.session_state.database_guru]
+        pilihan_guru = st.selectbox("Pilih Guru pengajar:", list_nama_guru)
+        
+        # Ambil data mapel dan kelas berdasarkan guru yang dipilih secara otomatis
+        info_guru_terpilih = next(g for g in st.session_state.database_guru if g['nama'] == pilihan_guru)
+        mapel_otomatis = info_guru_terpilih['mapel']
+        kelas_tersedia = info_guru_terpilih['kelas_diampu']
+        
+        # Tampilkan info otomatis agar user tahu
+        st.info(f"📖 Mata Pelajaran: **{mapel_otomatis}**")
+        
+        # Pilihan kelas dibatasi HANYA kelas yang diampu guru tersebut
+        pilihan_kelas = st.selectbox("Pilih Kelas (Hanya yang diampu guru ini):", kelas_tersedia)
+        
+        pilihan_hari = st.selectbox("Pilih Hari Pelajaran:", list_hari)
+        
+        max_jam = 6 if pilihan_hari == 'Jumat' else 9
+        jam_mulai = st.number_input("Mulai dari Jam Ke-:", min_value=1, max_value=max_jam, value=1, key="jam_mulai_tab2")
+        durasi_jam = st.number_input("Durasi (Jumlah Jam Pelajaran):", min_value=1, max_value=5, value=2, key="durasi_tab2")
+        
+        if st.button("🚀 Masukkan ke Jadwal Harian", type="primary"):
+            # Validasi Aturan Waktu Sekolah
+            if pilihan_hari == 'Jumat' and (jam_mulai + durasi_jam - 1) > 6:
+                st.error("❌ Gagal! Hari Jumat maksimal hanya sampai jam ke-6.")
+            elif pilihan_hari == 'Senin' and jam_mulai == 1:
+                st.error("❌ Gagal! Hari Senin Jam ke-1 otomatis digunakan untuk Upacara.")
+            else:
+                bentrok = False
+                slot_baru = []
+                
+                for i in range(durasi_jam):
+                    j_sekarang = jam_mulai + i
+                    
+                    if j_sekarang > max_jam:
+                        st.error(f"❌ Durasi melebihi batas jam sekolah hari {pilihan_hari}.")
+                        bentrok = True
+                        break
+                        
+                    # Validasi Anti-Bentrok Guru
+                    b_guru = next((j for j in st.session_state.plotting_jadwal if j['hari'] == pilihan_hari and j['jam'] == j_sekarang and j['guru'] == pilihan_guru), None)
+                    if b_guru:
+                        st.error(f"❌ Guru {pilihan_guru} sudah mengajar di kelas {b_guru['kelas']} pada jam ke-{j_sekarang}!")
+                        bentrok = True
+                        break
+                        
+                    # Validasi Anti-Bentrok Kelas
+                    b_kelas = next((j for j in st.session_state.plotting_jadwal if j['hari'] == pilihan_hari and j['jam'] == j_sekarang and j['kelas'] == pilihan_kelas), None)
+                    if b_kelas:
+                        st.error(f"❌ Kelas {pilihan_kelas} sudah terisi pelajaran lain pada jam ke-{j_sekarang}!")
+                        bentrok = True
+                        break
+                        
+                    slot_baru.append({
+                        "guru": pilihan_guru, "mapel": mapel_otomatis, "kelas": pilihan_kelas, "hari": pilihan_hari, "jam": j_sekarang
+                    })
+                    
+                if not bentrok:
+                    st.session_state.plotting_jadwal.extend(slot_baru)
+                    st.success(f"✔️ Berhasil memplot jadwal untuk {pilihan_guru} di kelas {pilihan_kelas}!")
+
+    with col_info:
+        st.markdown("""
+        ### ⏱️ Aturan Jam & Istirahat Sekolah:
+        * **Senin - Kamis (40 Menit/Jam)**
+          * Jam 1: 07.20 - 08.00 *(Senin = Upacara)*
+          * Istirahat 1: 09.20 - 09.40
+          * Istirahat 2: 12.00 - 12.40
+        * **Jumat (35 Menit/Jam)**
+          * Maksimal hanya sampai Jam ke-6
+          * Istirahat hanya 1 kali (09.40 - 10.00)
+        """)
+
+# ==================== TAB 3: HASIL JADWAL ====================
+with tab3:
+    st.subheader("📊 Cetak & Tinjau Jadwal Per Kelas")
+    kelas_view = st.selectbox("Pilih Kelas untuk Dilihat:", list_kelas, key="view_kelas")
     
-    # Menampilkan keseluruhan grid jadwal sesuai struktur file asli Anda
-    # Kita menggunakan st.dataframe dengan ukuran kontainer penuh
-    st.dataframe(df_filled, use_container_width=True, height=600)
+    matriks = pd.DataFrame(index=list_hari, columns=[f"Jam {i}" for i in range(1, 10)]).fillna("Kosong")
     
-    # Fitur Tambahan: Filter Berdasarkan Hari agar lebih mudah dibaca
-    st.sidebar.header("🛠️ Panel Kontrol Tampilan")
-    pilihan_hari = st.sidebar.selectbox("Pilih Hari untuk Difilter:", ["Semua Hari", "SENIN", "SELASA"])
+    for h in list_hari:
+        max_j = 6 if h == 'Jumat' else 9
+        for j in range(1, 10):
+            if j > max_j:
+                matriks.at[h, f"Jam {j}"] = "-"
+                continue
+            if h == 'Senin' and j == 1:
+                matriks.at[h, f"Jam {j}"] = "🎗️ UPACARA"
+                continue
+                
+            slot = next((d for d in st.session_state.plotting_jadwal if d['hari'] == h and d['jam'] == j and d['kelas'] == kelas_view), None)
+            if slot:
+                matriks.at[h, f"Jam {j}"] = f"{slot['mapel']}\n({slot['guru']})"
+                
+    st.dataframe(matriks, use_container_width=True)
     
-    if pilihan_hari != "Semua Hari":
-        st.subheader(f"📌 Tampilan Khusus Hari {pilihan_hari}")
-        # Logika sederhana memotong kolom berdasarkan struktur koordinat file Anda
-        if pilihan_hari == "SENIN":
-            # Hari Senin biasanya ada di kolom awal setelah JAM KE (kolom index 0 sampai 45)
-            df_hari = df_filled.iloc[:, :46]
-            st.dataframe(df_hari, use_container_width=True)
-        elif pilihan_hari == "SELASA":
-            # Hari Selasa dimulai dari pembatas kolom berikutnya (kolom index 0 untuk JAM KE, dan kolom 46 ke atas)
-            kolom_selasa = [0] + list(range(46, 92))
-            # Memastikan index tidak out of bounds
-            kolom_selasa = [k for k in kolom_selasa if k < len(df_filled.columns)]
-            df_hari = df_filled.iloc[:, kolom_selasa]
-            st.dataframe(df_hari, use_container_width=True)
-else:
-    st.warning("Silakan pastikan file `Jadwal Pelajaran Semua Kelas.xlsx - SUSUN.csv` berada dalam satu folder dengan aplikasi ini.")
+    if st.button("🗑️ Reset Jadwal Harian"):
+        st.session_state.plotting_jadwal = []
+        st.rerun()
