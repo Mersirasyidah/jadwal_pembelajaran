@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
+import io
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-import io
 
-st.set_page_config(page_title="Smart Scheduler SMPN 2 Banguntapan v4", layout="wide")
+st.set_page_config(page_title="Smart Scheduler SMPN 2 Banguntapan v5", layout="wide")
 
 list_hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat']
 tingkatan = ['7', '8', '9']
@@ -55,29 +55,28 @@ if 'data_beban_guru' not in st.session_state:
 if 'jadwal_terplot' not in st.session_state:
     st.session_state.jadwal_terplot = []
 
-st.title("🏫 AI Timetable Scheduler - ENGINE V4 (Perbaikan Kode AGM & Prioritas Prakarya)")
+st.title("🏫 AI Timetable Scheduler - ENGINE V5")
 
-tab1, tab2 = st.tabs(["📋 Data Input & Engine AI", "🗓️ Cetak Master Jadwal"])
+tab1, tab2, tab3 = st.tabs(["📋 Data Input & Engine AI", "🗓️ Pratinjau & Cetak Jadwal", "📊 Laporan Audit & Download Excel"])
 
 with tab1:
     edited_df = st.data_editor(st.session_state.data_beban_guru, use_container_width=True)
     st.session_state.data_beban_guru = edited_df
 
-    if st.button("⚡ Jalankan Engine AI Schedule Optimizer (V4)", type="primary"):
+    if st.button("⚡ Jalankan Engine AI Schedule Optimizer (V5)", type="primary"):
         plot_res = []
         
         def cek_ketersediaan_waktu_guru(hari, jam, libur_list):
             if hari in libur_list:
-                return jam <= 4  # Jam 1-4 untuk hari MGMP/Libur
+                return jam <= 4
             return True
 
-        # 1. PERBAIKAN MUTLAK: PLOT AGAMA (Kunci Kode Guru yang Sesuai secara Absolut)
+        # 1. PLOT AGAMA (ANI & NUR Kunci Absolut)
         df_agama = edited_df[edited_df['Kode Mapel'] == 'AGM']
         hari_agama_map = {"7": ("Rabu", 4), "8": ("Kamis", 4), "9": ("Selasa", 4)}
         for kelas in semua_kelas:
             t = kelas[0]
             h_opt, j_opt = hari_agama_map[t]
-            # Temukan guru yang benar-benar ditugaskan untuk kelas ini
             guru_terpilih = None
             for _, g_row in df_agama.iterrows():
                 if kelas in g_row['Mengajar Kelas']:
@@ -87,14 +86,14 @@ with tab1:
             if guru_terpilih:
                 for step in range(3):
                     plot_res.append({
-                        "kode_guru": guru_terpilih, # Kunci nilai absolut (misal: "Anik M")
+                        "kode_guru": guru_terpilih,
                         "kode_mapel": "AGM", 
                         "kelas": kelas, 
                         "hari": h_opt, 
                         "jam": j_opt + step
                     })
 
-        # 2. PRIORITY ELEVATION: PRAKARYA DINAINKAN KE ATAS AGAR MENDAPAT SLOT PAGI HARI LIBUR
+        # 2. PRIORITY ELEVATION: PRAKARYA DINAINKAN KE ATAS
         df_prak = edited_df[edited_df['Kode Mapel'] == 'PRAK']
         for _, row in df_prak.iterrows():
             g_name = row['Kode Guru']
@@ -102,7 +101,7 @@ with tab1:
             for kelas in row['Mengajar Kelas']:
                 placed_prak = False
                 for hari in list_hari:
-                    for j_mulai in range(1, 5): # Utamakan jam pagi hari libur/biasa
+                    for j_mulai in range(1, 5):
                         if hari == 'Senin' and j_mulai == 1: continue
                         if not all(cek_ketersediaan_waktu_guru(hari, j_mulai + s, libur_guru) for s in range(3)):
                             continue
@@ -212,7 +211,7 @@ with tab1:
                     if not placed_1: break
 
         st.session_state.jadwal_terplot = plot_res
-        st.success("✔️ Perbaikan Selesai! Kode AGM Akurat & Prakarya Mengisi Jam Pagi.")
+        st.success("✔️ Optimalisasi Sukses!")
         st.rerun()
 
 with tab2:
@@ -237,3 +236,125 @@ with tab2:
                     tabel_tampil.at[h, f"Jam {j}"] = f"{matches[0]['kode_mapel']} ({g_3d})"
                     
         st.dataframe(tabel_tampil, use_container_width=True)
+
+with tab3:
+    if not st.session_state.jadwal_terplot:
+        st.warning("⚠️ Tidak ada data audit. Silakan jalankan optimasi terlebih dahulu.")
+    else:
+        st.subheader("📊 1. Laporan JP Per Kelas")
+        df_p = pd.DataFrame(st.session_state.jadwal_terplot)
+        jp_per_kelas = df_p.groupby('kelas').size().reset_index(name='Total JP Terplot')
+        st.dataframe(jp_per_kelas, use_container_width=True)
+
+        st.subheader("🚨 2. Laporan Mapel yang Belum Masuk / Kekurangan Jam")
+        laporan_gagal = []
+        for _, row in edited_df.iterrows():
+            g_name = row['Kode Guru']
+            m_code = row['Kode Mapel']
+            target_jp = int(row['JP/Minggu'])
+            for kelas in row['Mengajar Kelas']:
+                aktual_jp = len(df_p[(df_p['kode_guru'] == g_name) & (df_p['kode_mapel'] == m_code) & (df_p['kelas'] == kelas)])
+                if aktual_jp < target_jp:
+                    laporan_gagal.append({
+                        "Nama Guru": row['Nama Guru'],
+                        "Mapel": m_code,
+                        "Kelas Target": kelas,
+                        "Kebutuhan JP": target_jp,
+                        "Terisi (Aktual)": aktual_jp,
+                        "Sisa Belum Masuk": target_jp - aktual_jp
+                    })
+        
+        if laporan_gagal:
+            st.dataframe(pd.DataFrame(laporan_gagal), use_container_width=True)
+        else:
+            st.success("🎉 Sempurna! Semua mata pelajaran dan jam mengajar guru 100% masuk tanpa ada sisa.")
+
+        st.subheader("📥 3. Download Master Jadwal Akhir (Semua Kelas)")
+        
+        # PROSES GENERATE EXCEL UTUH SEMUA KELAS
+        output = io.BytesIO()
+        wb = openpyxl.Workbook()
+        # Hapus sheet default
+        if "Sheet" in wb.sheetnames:
+            wb.remove(wb["Sheet"])
+            
+        # Style Excel
+        font_title = Font(name="Arial", size=14, bold=True, color="000000")
+        font_header = Font(name="Arial", size=11, bold=True, color="FFFFFF")
+        font_data = Font(name="Arial", size=11, color="000000")
+        fill_header = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+        fill_upacara = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+        align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        thin_side = Side(border_style="thin", color="D3D3D3")
+        thin_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
+        for kls in semua_kelas:
+            ws = wb.create_sheet(title=f"Kelas {kls}")
+            ws.views.sheetView[0].showGridLines = True
+            
+            # Judul Sheet
+            ws.merge_cells("A1:J1")
+            ws["A1"] = f"JADWAL PELAJARAN KELAS {kls} - SMPN 2 BANGUNTAPAN"
+            ws["A1"].font = font_title
+            ws["A1"].alignment = align_center
+            ws.row_dimensions[1].height = 35
+            
+            # Header Tabel
+            headers = ["Hari", "Jam 1", "Jam 2", "Jam 3", "Jam 4", "Jam 5", "Jam 6", "Jam 7", "Jam 8", "Jam 9"]
+            ws.append([]) # Baris kosong ke 2
+            ws.append(headers) # Baris ke 3
+            ws.row_dimensions[3].height = 25
+            
+            for col_idx in range(1, 11):
+                cell = ws.cell(row=3, column=col_idx)
+                cell.font = font_header
+                cell.fill = fill_header
+                cell.alignment = align_center
+                cell.border = thin_border
+            
+            # Isi Baris Hari
+            row_num = 4
+            for h in list_hari:
+                limit = 6 if h == 'Jumat' else 9
+                row_data = [h]
+                for j in range(1, 10):
+                    if j > limit:
+                        row_data.append("-")
+                    elif h == 'Senin' and j == 1:
+                        row_data.append("🎗️ UPACARA")
+                    else:
+                        matches = [d for d in st.session_state.jadwal_terplot if d['hari'] == h and d['jam'] == j and d['kelas'] == kls]
+                        if matches:
+                            g_3d = ambil_tiga_digit(matches[0]['kode_guru'])
+                            row_data.append(f"{matches[0]['kode_mapel']} ({g_3d})")
+                        else:
+                            row_data.append("Kosong")
+                
+                ws.append(row_data)
+                ws.row_dimensions[row_num].height = 22
+                
+                # Apply styling pada baris data
+                for col_idx in range(1, 11):
+                    cell = ws.cell(row=row_num, column=col_idx)
+                    cell.font = font_data
+                    cell.alignment = align_center
+                    cell.border = thin_border
+                    if cell.value == "🎗️ UPACARA":
+                        cell.fill = fill_upacara
+                row_num += 1
+            
+            # Atur Lebar Kolom
+            ws.column_dimensions['A'].width = 15
+            for c in ['B','C','D','E','F','G','H','I','J']:
+                ws.column_dimensions[c].width = 14
+
+        wb.save(output)
+        output.seek(0)
+        
+        st.download_button(
+            label="📥 Download File Master Jadwal Akhir (.xlsx)",
+            data=output,
+            file_name="Master_Jadwal_Akhir_SMPN2_Banguntapan.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            type="primary"
+        )
