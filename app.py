@@ -12,9 +12,9 @@ tingkatan = ['7', '8', '9']
 abjad = ['A', 'B', 'C', 'D', 'E']
 semua_kelas = [f"{t}{a}" for t in tingkatan for a in abjad]
 
-# Inisialisasi Data Master Guru (Catatan: Beban JP BK diset 0 sesuai request)
+# Inisialisasi Data Master Guru dengan Kalkulasi Banyak Kelas & Total JP Sepekan
 if 'data_beban_guru' not in st.session_state:
-    st.session_state.data_beban_guru = pd.DataFrame([
+    raw_data = [
         {"No": 1, "Kode Guru": "Purwanto", "Nama Guru": "Purwanto, S.Pd.", "Mata Pelajaran": "IPA", "Kode Mapel": "IPA", "JP/Minggu": 5, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": ["Kamis"]},
         {"No": 2, "Kode Guru": "Nurkhasanah", "Nama Guru": "Nurkhasanah, S.Ag.", "Mata Pelajaran": "P.A. ISLAM", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": []},
         {"No": 3, "Kode Guru": "Heni P", "Nama Guru": "Heni Purwaningsih, S.Pd.", "Mata Pelajaran": "B. INGGRIS", "Kode Mapel": "ING", "JP/Minggu": 4, "Mengajar Kelas": ["9A", "9B", "9C", "9D"], "Hari Libur/MGMP": []},
@@ -48,7 +48,15 @@ if 'data_beban_guru' not in st.session_state:
         {"No": 31, "Kode Guru": "Krisma D", "Nama Guru": "Krisma Dewi, S.Pd.", "Mata Pelajaran": "B. INDONESIA", "Kode Mapel": "IND", "JP/Minggu": 6, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": []},
         {"No": 32, "Kode Guru": "Anggi S", "Nama Guru": "Anggi Supriyadi, S.Hum", "Mata Pelajaran": "P.A. Islam", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["8A", "8B"], "Hari Libur/MGMP": []},
         {"No": 33, "Kode Guru": "Rizal R", "Nama Guru": "Rizal Rahmanto, S.Pd.", "Mata Pelajaran": "IPS", "Kode Mapel": "IPS", "JP/Minggu": 4, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E", "8A", "8B"], "Hari Libur/MGMP": []}
-    ])
+    ]
+    df_init = pd.DataFrame(raw_data)
+    # Kalkulasi penambahan kolom baru secara langsung
+    df_init['Banyak Kelas'] = df_init['Mengajar Kelas'].apply(len)
+    df_init['Total JP Sepekan'] = df_init['JP/Minggu'] * df_init['Banyak Kelas']
+    
+    # Atur urutan kolom agar rapi
+    kolom_urut = ["No", "Kode Guru", "Nama Guru", "Mata Pelajaran", "Kode Mapel", "JP/Minggu", "Banyak Kelas", "Total JP Sepekan", "Mengajar Kelas", "Hari Libur/MGMP"]
+    st.session_state.data_beban_guru = df_init[kolom_urut]
 
 if 'jadwal_terplot' not in st.session_state:
     st.session_state.jadwal_terplot = []
@@ -107,9 +115,9 @@ def export_excel_laporan(plotting_data, kelas_list, hari_list):
                 matches = [d for d in plotting_data if d['hari'] == hari and d['jam'] == jam and d['kelas'] == kelas]
                 if matches:
                     if len(matches) > 1:
-                        cell_kbm.value = "PARALEL AGAMA\\n(ISL/KRI/KAT/HIN)"
+                        cell_kbm.value = "PARALEL AGAMA\n(ISL/KRI/KAT/HIN)"
                     else:
-                        cell_kbm.value = f"{matches[0]['kode_mapel']}\\n{matches[0]['kode_guru']}"
+                        cell_kbm.value = f"{matches[0]['kode_mapel']}\n{matches[0]['kode_guru']}"
                         
         current_row += max_jam
         
@@ -119,18 +127,25 @@ def export_excel_laporan(plotting_data, kelas_list, hari_list):
     return output
 
 st.title("🏫 AI Smart Timetable - Versi Optimasi Khusus")
-st.subheader("Penyelarasan PJOK Jam Pertama, Pemecahan JP Besar (Jarak Hari), & Multi-Agama Serentak")
+st.subheader("SMPN 2 Banguntapan — Penyelarasan Restriksi & Penghitungan Otomatis Beban Kerja Guru")
 
-tab1, tab2 = st.tabs(["📋 Set Parameter & Aturan", "🗓️ Hasil Peta Jadwal KBM"])
+tab1, tab2 = st.tabs(["📋 Master Beban Kerja Guru", "🗓️ Hasil Peta Jadwal KBM"])
 
 with tab1:
-    st.info("💡 **Aturan Khusus Aktif:** BK dinonaktifkan sementara dari kelas (0 JP). PJOK dikunci pada jam paling pagi. Mapel besar otomatis dipecah (5 JP -> 3+2, 6 JP -> 3+3) dengan jeda hari.")
+    st.info("💡 **Informasi Transparansi:** Kolom **Banyak Kelas** dan **Total JP Sepekan** akan otomatis terhitung secara realtime apabila daftar ruang rombel mengajar diubah.")
+    
+    # Trigger sinkronisasi ulang jika user mengubah rombel mengajar di data_editor
     edited_df = st.data_editor(st.session_state.data_beban_guru, use_container_width=True)
     
+    # Recalculate secara aman jika ada perubahan baris data
+    edited_df['Banyak Kelas'] = edited_df['Mengajar Kelas'].apply(lambda x: len(x) if isinstance(x, list) else 0)
+    edited_df['Total JP Sepekan'] = edited_df['JP/Minggu'].astype(int) * edited_df['Banyak Kelas']
+    st.session_state.data_beban_guru = edited_df
+
+    # Metrik Total Jam Kerja Seluruh Sekolah
+    st.metric(label="📊 Total Alokasi Jam Pelajaran (JP) Sekolah / Minggu", value=f"{edited_df['Total JP Sepekan'].sum()} JP")
+    
     if st.button("⚡ Jalankan Engine AI Schedule Optimizer", type="primary"):
-        st.session_state.data_beban_guru = edited_df
-        st.session_state.jadwal_terplot = []
-        
         plot_res = []
         
         # 1. PETA PARALEL AGAMA (Mengunci seluruh varian agama pada jam yang sama)
@@ -204,7 +219,6 @@ with tab1:
                     placed_sesi = False
                     for hari in list_hari:
                         if hari in hari_terpakai_kelas: continue
-                        # Beri jarak minimal hari (bukan besoknya langsung) jika sesi sebelumnya sudah ada
                         if hari_terpakai_kelas and abs(list_hari.index(hari) - list_hari.index(hari_terpakai_kelas[-1])) < 2:
                             continue
                             
@@ -234,7 +248,7 @@ with tab1:
 
         st.session_state.jadwal_terplot = plot_res
         st.success("✔️ Peta Jadwal Berhasil Diperbarui Sesuai Seluruh Aturan Restriksi Baru!")
-        st.rerun()
+        st.experimental_rerun()
 
 with tab2:
     if not st.session_state.jadwal_terplot:
@@ -256,7 +270,6 @@ with tab2:
                 matches = [d for d in st.session_state.jadwal_terplot if d['hari'] == h and d['jam'] == j and d['kelas'] == pilihan_kelas]
                 if matches:
                     if len(matches) > 1:
-                        # Menggabungkan nama varian agama agar terlihat jelas semuanya aktif mengajar
                         labels = [m['kode_mapel'] for m in matches]
                         tabel_tampil.at[h, f"Jam {j}"] = " | ".join(labels)
                     else:
@@ -265,7 +278,6 @@ with tab2:
         st.markdown(f"##### 📅 Preview Jadwal Teroptimasi Kontrol Ketat **Kelas {pilihan_kelas}**")
         st.dataframe(tabel_tampil, use_container_width=True)
         
-        # Opsi Download File Excel Hasil Sinkronisasi Lengkap
         excel_data = export_excel_laporan(st.session_state.jadwal_terplot, semua_kelas, list_hari)
         st.download_button(
             label="📥 Download Master Jadwal Excel",
