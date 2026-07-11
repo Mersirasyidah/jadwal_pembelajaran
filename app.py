@@ -18,52 +18,84 @@ def ambil_tiga_digit(nama_kode):
     return nama_str[:3].upper()
 
 def get_default_data():
+    # Data diperbarui total berdasarkan gambar yang diunggah pengguna
     raw_data = [
-        {"No": 1, "Kode Guru": "Purwanto", "Nama Guru": "Purwanto, S.Pd.", "Mata Pelajaran": "IPA", "Kode Mapel": "IPA", "JP/Minggu": 5, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": ["Kamis"]},
-        {"No": 2, "Kode Guru": "Nurkhasanah", "Nama Guru": "Nurkhasanah, S.Ag.", "Mata Pelajaran": "P.A. ISLAM", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": []},
-        {"No": 3, "Kode Guru": "Heni P", "Nama Guru": "Heni Purwaningsih, S.Pd.", "Mata Pelajaran": "B. INGGRIS", "Kode Mapel": "ING", "JP/Minggu": 4, "Mengajar Kelas": ["9A", "9B", "9C", "9D"], "Hari Libur/MGMP": []},
-        {"No": 4, "Kode Guru": "Sri Purwanti", "Nama Guru": "Sri Purwanti, S.Pd.", "Mata Pelajaran": "MATEMATIKA", "Kode Mapel": "MAT", "JP/Minggu": 5, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Selasa"]},
-        {"No": 5, "Kode Guru": "Rizka D", "Nama Guru": "Rizka Diestriana, S.Pd.", "Mata Pelajaran": "B. INGGRIS", "Kode Mapel": "ING", "JP/Minggu": 4, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": []},
-        {"No": 6, "Kode Guru": "Anik M", "Nama Guru": "Anik Mulyani, S.Ag.", "Mata Pelajaran": "P.A. ISLAM", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E", "8C", "8D", "8E"], "Hari Libur/MGMP": []},
-        {"No": 7, "Kode Guru": "Mersi", "Nama Guru": "Mersi, S.T.", "Mata Pelajaran": "INFORMATIKA", "Kode Mapel": "INF", "JP/Minggu": 2, "Mengajar Kelas": ["8A", "8B", "8C", "9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": []},
-        {"No": 8, "Kode Guru": "Fitri L", "Nama Guru": "Fitri Lestari, S.S.", "Mata Pelajaran": "B. JAWA", "Kode Mapel": "JW", "JP/Minggu": 2, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E", "8A", "8B", "9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": []},
-        {"No": 9, "Kode Guru": "Yoma S", "Nama Guru": "Yoma Septiantika, S.Pd.", "Mata Pelajaran": "SENI BUDAYA", "Kode Mapel": "SB", "JP/Minggu": 3, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": []},
-        {"No": 10, "Kode Guru": "Maftuhah", "Nama Guru": "Maftuhah Rahayu, S.Pd.", "Mata Pelajaran": "B. INDONESIA", "Kode Mapel": "IND", "JP/Minggu": 6, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": []},
-        {"No": 11, "Kode Guru": "Nandar P", "Nama Guru": "Nandar Pamungkas Sari, S.Pd.", "Mata Pelajaran": "BK", "Kode Mapel": "BK", "JP/Minggu": 0, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": []},
-        {"No": 12, "Kode Guru": "Darpito", "Nama Guru": "Darpito Nugroho, S.Pd.", "Mata Pelajaran": "BK", "Kode Mapel": "BK", "JP/Minggu": 0, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": []},
-        {"No": 13, "Kode Guru": "Asti A", "Nama Guru": "Asti Am Rini, S.Pd.", "Mata Pelajaran": "B. INDONESIA", "Kode Mapel": "IND", "JP/Minggu": 6, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": []},
-        {"No": 14, "Kode Guru": "Cholid D", "Nama Guru": "Cholid Dalyanto, S.Pd.Kor.", "Mata Pelajaran": "PJOK", "Kode Mapel": "PJOK", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "7B", "7C", "8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": []},
-        {"No": 15, "Kode Guru": "Feni D", "Nama Guru": "Feni Dwimartanti, S.Pd.", "Mata Pelajaran": "PEND. PANCASILA", "Kode Mapel": "PP", "JP/Minggu": 3, "Mengajar Kelas": ["7C", "7D", "7E", "9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": []},
-        {"No": 16, "Kode Guru": "Ali S", "Nama Guru": "Ali Sudrajat, S.Pd.", "Mata Pelajaran": "BK", "Kode Mapel": "BK", "JP/Minggu": 0, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": []},
-        {"No": 17, "Kode Guru": "Rahmat M", "Nama Guru": "Rahmat Mas Said, S.Pd.", "Mata Pelajaran": "SENI BUDAYA", "Kode Mapel": "SB", "JP/Minggu": 3, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": []},
-        {"No": 18, "Kode Guru": "Ami R", "Nama Guru": "Ami Royati, S.Pd.", "Mata Pelajaran": "MATEMATIKA", "Kode Mapel": "MAT", "JP/Minggu": 5, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": []},
-        {"No": 19, "Kode Guru": "Umi K", "Nama Guru": "Umi Kulstum, S.Pd.", "Mata Pelajaran": "IPA", "Kode Mapel": "IPA", "JP/Minggu": 5, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": []},
-        {"No": 20, "Kode Guru": "Eny W", "Nama Guru": "Eny Widiyanti, S.Pd.", "Mata Pelajaran": "MATEMATIKA", "Kode Mapel": "MAT", "JP/Minggu": 5, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": ["Selasa"]},
-        {"No": 21, "Kode Guru": "Budi P", "Nama Guru": "Budi Prasetya, S.Pd.", "Mata Pelajaran": "IPS", "Kode Mapel": "IPS", "JP/Minggu": 4, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E", "8C", "8D", "8E"], "Hari Libur/MGMP": []},
-        {"No": 22, "Kode Guru": "Iswarasanti", "Nama Guru": "Iswarasanti, S.Ag.", "Mata Pelajaran": "P.A. Hindu", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "8C", "9A"], "Hari Libur/MGMP": []},
-        {"No": 23, "Kode Guru": "Sabti H", "Nama Guru": "Sabti Herma Nugraheni, S.Pd.", "Mata Pelajaran": "P.A. Katolik", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "8A", "9A"], "Hari Libur/MGMP": []},
-        {"No": 24, "Kode Guru": "Intan W", "Nama Guru": "Intan Widiastuti, S.Th.", "Mata Pelajaran": "P.A. Kristen", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "8A", "9A"], "Hari Libur/MGMP": []},
-        {"No": 25, "Kode Guru": "Christina D", "Nama Guru": "Christina Dwi Ayu Wijaya, S.Pd.", "Mata Pelajaran": "PEND. PANCASILA", "Kode Mapel": "PP", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "7B", "8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": []},
-        {"No": 26, "Kode Guru": "Thiara M", "Nama Guru": "Thiara Maharani, S.Pd.", "Mata Pelajaran": "PRAKARYA", "Kode Mapel": "PRAK", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": []},
-        {"No": 26, "Kode Guru": "Thiara M", "Nama Guru": "Thiara Maharani, S.Pd.", "Mata Pelajaran": "B.JAWA", "Kode Mapel": "JW", "JP/Minggu": 3, "Mengajar Kelas": ["8C", "8D", "8E"], "Hari Libur/MGMP": []},
-        {"No": 27, "Kode Guru": "Luthfan Q", "Nama Guru": "Luthfan Qaedi Wicaksono, S.Pd.", "Mata Pelajaran": "PJOK", "Kode Mapel": "PJOK", "JP/Minggu": 3, "Mengajar Kelas": ["7D", "7E", "9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": []},
-        {"No": 28, "Kode Guru": "Anggiyani F", "Nama Guru": "Anggiyani Fabilah Parwati, S.Pd.", "Mata Pelajaran": "INFORMATIKA", "Kode Mapel": "INF", "JP/Minggu": 2, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E", "8D", "8E"], "Hari Libur/MGMP": []},
-        {"No": 29, "Kode Guru": "Wesda A", "Nama Guru": "Wesda Ayu Rahmadani", "Mata Pelajaran": "B. INGGRIS", "Kode Mapel": "ING", "JP/Minggu": 4, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": []},
-        {"No": 30, "Kode Guru": "Anisa S", "Nama Guru": "Anisa Safera Proborini, S.Pd.", "Mata Pelajaran": "IPA", "Kode Mapel": "IPA", "JP/Minggu": 5, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": []},
-        {"No": 31, "Kode Guru": "Krisma D", "Nama Guru": "Krisma Dewi, S.Pd.", "Mata Pelajaran": "B. INDONESIA", "Kode Mapel": "IND", "JP/Minggu": 6, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": []},
-        {"No": 32, "Kode Guru": "Anggi S", "Nama Guru": "Anggi Supriyadi, S.Hum", "Mata Pelajaran": "P.A. Islam", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["8A", "8B"], "Hari Libur/MGMP": []},
-        {"No": 33, "Kode Guru": "Rizal R", "Nama Guru": "Rizal Rahmanto, S.Pd.", "Mata Pelajaran": "IPS", "Kode Mapel": "IPS", "JP/Minggu": 4, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E", "8A", "8B"], "Hari Libur/MGMP": []}
+        {"No": 1, "Kode Guru": "Purwanto", "Nama Guru": "Purwanto, S.Pd.", "Mata Pelajaran": "IPA", "Kode Mapel": "IPA", "JP/Minggu": 5, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": ["Jumat"]},
+        {"No": 2, "Kode Guru": "Nurkhasanah", "Nama Guru": "Nurkhasanah, S.Ag.", "Mata Pelajaran": "P.A. ISLAM", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Rabu"]},
+        {"No": 3, "Kode Guru": "Heni P", "Nama Guru": "Heni Purwaningsih, S.Pd.", "Mata Pelajaran": "B. INGGRIS", "Kode Mapel": "ING", "JP/Minggu": 5, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Selasa"]},
+        {"No": 4, "Kode Guru": "Sri Purwanti", "Nama Guru": "Sri Purwanti, S.Pd.", "Mata Pelajaran": "MATEMATIKA", "Kode Mapel": "MAT", "JP/Minggu": 5, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Kamis"]},
+        {"No": 5, "Kode Guru": "Rizka D", "Nama Guru": "Rizka Diestriana, S.Pd.", "Mata Pelajaran": "B. INGGRIS", "Kode Mapel": "ING", "JP/Minggu": 5, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": ["Selasa"]},
+        {"No": 6, "Kode Guru": "Anik M", "Nama Guru": "Anik Mulyani, S.Ag.", "Mata Pelajaran": "P.A. ISLAM", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E", "8C", "8D", "8E"], "Hari Libur/MGMP": ["Rabu"]},
+        {"No": 7, "Kode Guru": "Mersi", "Nama Guru": "Mersi, S.T.", "Mata Pelajaran": "INFORMATIKA", "Kode Mapel": "INF", "JP/Minggu": 3, "Mengajar Kelas": ["8A", "8B", "8C", "9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Kamis"]},
+        {"No": 8, "Kode Guru": "Fitri L", "Nama Guru": "Fitri Lestari, S.S.", "Mata Pelajaran": "B. JAWA", "Kode Mapel": "JW", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E", "8A", "8B", "9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Selasa"]},
+        {"No": 9, "Kode Guru": "Yoma S", "Nama Guru": "Yoma Septiantika, S.Pd.", "Mata Pelajaran": "SENI BUDAYA", "Kode Mapel": "SB", "JP/Minggu": 3, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": ["Kamis"]},
+        {"No": 10, "Kode Guru": "Maftuhah", "Nama Guru": "Maftuhah Rahayu, S.Pd.", "Mata Pelajaran": "B. INDONESIA", "Kode Mapel": "IND", "JP/Minggu": 5, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Selasa"]},
+        {"No": 11, "Kode Guru": "Nandar P", "Nama Guru": "Nandar Pamungkas Sari, S.Pd.", "Mata Pelajaran": "BK", "Kode Mapel": "BK", "JP/Minggu": 0, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Rabu"]},
+        {"No": 12, "Kode Guru": "Darpito", "Nama Guru": "Darpito Nugroho, S.Pd.", "Mata Pelajaran": "BK", "Kode Mapel": "BK", "JP/Minggu": 0, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": ["Rabu"]},
+        {"No": 13, "Kode Guru": "Asti A", "Nama Guru": "Asti Am Rini, S.Pd.", "Mata Pelajaran": "B. INDONESIA", "Kode Mapel": "IND", "JP/Minggu": 5, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": ["Selasa"]},
+        {"No": 14, "Kode Guru": "Cholid D", "Nama Guru": "Cholid Dalyanto, S.Pd.Kor.", "Mata Pelajaran": "PJOK", "Kode Mapel": "PJOK", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "7B", "7C", "8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": ["Rabu"]},
+        {"No": 15, "Kode Guru": "Feni D", "Nama Guru": "Feni Dwimartanti, S.Pd.", "Mata Pelajaran": "PEND. PANCASILA", "Kode Mapel": "PP", "JP/Minggu": 3, "Mengajar Kelas": ["7C", "7D", "7E", "9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Senin"]},
+        {"No": 16, "Kode Guru": "Ali S", "Nama Guru": "Ali Sudrajat, S.Pd.", "Mata Pelajaran": "BK", "Kode Mapel": "BK", "JP/Minggu": 0, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": ["Rabu"]},
+        {"No": 17, "Kode Guru": "Rahmat M", "Nama Guru": "Rahmat Mas Said, S.Pd.", "Mata Pelajaran": "SENI BUDAYA", "Kode Mapel": "SB", "JP/Minggu": 3, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Kamis"]},
+        {"No": 18, "Kode Guru": "Ami R", "Nama Guru": "Ami Royati, S.Pd.", "Mata Pelajaran": "MATEMATIKA", "Kode Mapel": "MAT", "JP/Minggu": 5, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": ["Kamis"]},
+        {"No": 19, "Kode Guru": "Umi K", "Nama Guru": "Umi Kulstum, S.Pd.", "Mata Pelajaran": "IPA", "Kode Mapel": "IPA", "JP/Minggu": 5, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Jumat"]},
+        {"No": 20, "Kode Guru": "Eny W", "Nama Guru": "Eny Widiyanti, S.Pd.", "Mata Pelajaran": "MATEMATIKA", "Kode Mapel": "MAT", "JP/Minggu": 5, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": ["Kamis"]},
+        {"No": 21, "Kode Guru": "Budi P", "Nama Guru": "Budi Prasetya, S.Pd.", "Mata Pelajaran": "IPS", "Kode Mapel": "IPS", "JP/Minggu": 4, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E", "8C", "8D", "8E"], "Hari Libur/MGMP": ["Rabu"]},
+        {"No": 22, "Kode Guru": "Iswarasan", "Nama Guru": "Iswarasanti, S.Ag.", "Mata Pelajaran": "P.A. Hindu", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "8C", "9A"], "Hari Libur/MGMP": ["Rabu"]},
+        {"No": 23, "Kode Guru": "Sabti H", "Nama Guru": "Sabti Herma Nugraheni, S.Pd.", "Mata Pelajaran": "P.A. Katolik", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "8A", "9A"], "Hari Libur/MGMP": ["Jumat"]},
+        {"No": 24, "Kode Guru": "Intan W", "Nama Guru": "Intan Widiastuti, S.Th.", "Mata Pelajaran": "P.A. Kristen", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "8A", "9A"], "Hari Libur/MGMP": ["Jumat"]},
+        {"No": 25, "Kode Guru": "Christina I", "Nama Guru": "Christina Dwi Ayu Wijaya, S.Pd.", "Mata Pelajaran": "PEND. PANCASILA", "Kode Mapel": "PP", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "7B", "8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": ["Senin"]},
+        {"No": 26, "Kode Guru": "Thiara M", "Nama Guru": "Thiara Maharani, S.Pd.", "Mata Pelajaran": "PRAKARYA", "Kode Mapel": "PRAK", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": ["Senin"]},
+        {"No": 27, "Kode Guru": "Thiara M", "Nama Guru": "Thiara Maharani, S.Pd.", "Mata Pelajaran": "B.JAWA", "Kode Mapel": "JW", "JP/Minggu": 3, "Mengajar Kelas": ["8C", "8D", "8E"], "Hari Libur/MGMP": ["Senin"]},
+        {"No": 28, "Kode Guru": "Luthfan Q", "Nama Guru": "Luthfan Qaedi Wicaksono, S.Pd.", "Mata Pelajaran": "PJOK", "Kode Mapel": "PJOK", "JP/Minggu": 3, "Mengajar Kelas": ["7D", "7E", "9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Rabu"]},
+        {"No": 29, "Kode Guru": "Anggiyani", "Nama Guru": "Anggiyani Fabilah Parwati, S.Pd.", "Mata Pelajaran": "INFORMATIKA", "Kode Mapel": "INF", "JP/Minggu": 3, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E", "8D", "8E"], "Hari Libur/MGMP": ["Kamis"]},
+        {"No": 30, "Kode Guru": "Wesda A", "Nama Guru": "Wesda Ayu Rahmadani", "Mata Pelajaran": "B. INGGRIS", "Kode Mapel": "ING", "JP/Minggu": 5, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": ["Selasa"]},
+        {"No": 31, "Kode Guru": "Anisa S", "Nama Guru": "Anisa Safera Proborini, S.Pd.", "Mata Pelajaran": "IPA", "Kode Mapel": "IPA", "JP/Minggu": 5, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": ["Jumat"]},
+        {"No": 32, "Kode Guru": "Krisma D", "Nama Guru": "Krisma Dewi, S.Pd.", "Mata Pelajaran": "B. INDONESIA", "Kode Mapel": "IND", "JP/Minggu": 5, "Mengajar Kelas": ["8A", "8B", "8C", "8D", "8E"], "Hari Libur/MGMP": ["Selasa"]},
+        {"No": 33, "Kode Guru": "Anggi S", "Nama Guru": "Anggi Supriyadi, S.Hum", "Mata Pelajaran": "P.A. Islam", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["8A", "8B"], "Hari Libur/MGMP": ["Rabu"]},
+        {"No": 34, "Kode Guru": "Rizal R", "Nama Guru": "Rizal Rahmanto, S.Pd.", "Mata Pelajaran": "IPS", "Kode Mapel": "IPS", "JP/Minggu": 4, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E", "8A", "8B"], "Hari Libur/MGMP": ["Rabu"]}
     ]
     df_init = pd.DataFrame(raw_data)
     df_init['Banyak Kelas'] = df_init['Mengajar Kelas'].apply(len)
     df_init['Total JP Sepekan'] = df_init['JP/Minggu'] * df_init['Banyak Kelas']
-    return df_init[["No", "Kode Guru", "Nama Guru", "Mata Pelajaran", "Kode Mapel", "JP/Minggu", "Banyak Kelas", "Total JP Sepekan", "Mengajar Kelas", "Hari Libur/MGMP"]]
+    return df_init[["No", "Kode Guru", "Nama Guru", "Mata Pelajaran", "Kode Mapel", "JP/Minggu", "Mengajar Kelas", "Hari Libur/MGMP"]]
 
 if 'data_beban_guru' not in st.session_state:
     st.session_state.data_beban_guru = get_default_data()
 
 if 'jadwal_terplot' not in st.session_state:
     st.session_state.jadwal_terplot = []
+
+def export_template_user(df_guru):
+    # Membuat template download yang sama persis formatnya dengan gambar user
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Template Data Guru"
+    headers = ["No", "Kode Guru", "Nama Guru", "Mata Pelajaran", "Kode Mapel", "JP/Minggu", "Mengajar Kelas", "Hari Libur/MGMP"]
+    
+    for col_idx, text in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=text)
+        cell.font = Font(bold=True)
+        
+    for r_idx, row in df_guru.iterrows():
+        ws.cell(row=r_idx+2, column=1, value=row["No"])
+        ws.cell(row=r_idx+2, column=2, value=row["Kode Guru"])
+        ws.cell(row=r_idx+2, column=3, value=row["Nama Guru"])
+        ws.cell(row=r_idx+2, column=4, value=row["Mata Pelajaran"])
+        ws.cell(row=r_idx+2, column=5, value=row["Kode Mapel"])
+        ws.cell(row=r_idx+2, column=6, value=row["JP/Minggu"])
+        
+        # Kelas diubah menjadi teks string dipisah koma (contoh: 7A,7B,7C)
+        kelas_str = ",".join(row["Mengajar Kelas"])
+        ws.cell(row=r_idx+2, column=7, value=kelas_str)
+        
+        libur_str = ",".join(row["Hari Libur/MGMP"])
+        ws.cell(row=r_idx+2, column=8, value=libur_str)
+        
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output
 
 def export_excel_laporan(plotting_data, kelas_list, hari_list):
     wb = openpyxl.Workbook()
@@ -138,11 +170,11 @@ with st.sidebar:
     st.markdown("### 📥 Import Data Guru via Excel")
     uploaded_file = st.file_uploader("Unggah Master Data Kerja (.xlsx)", type=["xlsx"])
     
-    template_buffer = io.BytesIO()
-    get_default_data().to_excel(template_buffer, index=False)
+    # Tombol template unduh menggunakan format teks bersih dipisah koma sesuai keinginan user
+    template_data = export_template_user(get_default_data())
     st.download_button(
         label="📄 Download Template Format Excel",
-        data=template_buffer.getvalue(),
+        data=template_data,
         file_name="Template_Data_Guru.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
@@ -152,15 +184,12 @@ with st.sidebar:
             df_upload = pd.read_excel(uploaded_file)
             if 'Mengajar Kelas' in df_upload.columns:
                 df_upload['Mengajar Kelas'] = df_upload['Mengajar Kelas'].apply(
-                    lambda x: eval(x) if isinstance(x, str) and x.startswith('[') else (str(x).split(',') if ',' in str(x) else [str(x)])
+                    lambda x: [k.strip() for k in str(x).split(',')] if ',' in str(x) else [str(x).strip()]
                 )
             if 'Hari Libur/MGMP' in df_upload.columns:
                 df_upload['Hari Libur/MGMP'] = df_upload['Hari Libur/MGMP'].apply(
-                    lambda x: eval(x) if isinstance(x, str) and x.startswith('[') else ([] if pd.isna(x) else [str(x)])
+                    lambda x: [h.strip() for h in str(x).split(',')] if pd.notna(x) and ',' in str(x) else ([] if pd.isna(x) or str(x).strip()=="" else [str(x).strip()])
                 )
-            
-            df_upload['Banyak Kelas'] = df_upload['Mengajar Kelas'].apply(len)
-            df_upload['Total JP Sepekan'] = df_upload['JP/Minggu'] * df_upload['Banyak Kelas']
             st.session_state.data_beban_guru = df_upload
             st.sidebar.success("✔️ File Excel Berhasil Di-import!")
         except Exception as e:
@@ -169,14 +198,10 @@ with st.sidebar:
 tab1, tab2, tab3 = st.tabs(["📋 Data Beban Mengajar Guru", "🗓️ Hasil Peta Jadwal KBM", "🔍 Laporan Audit Keselarasan Kelas"])
 
 with tab1:
-    st.info("💡 Anda bisa mengubah data langsung pada tabel di bawah ini atau menggunakan fitur **Upload Excel** di bilah kiri samping (sidebar).")
+    st.info("💡 Data di bawah ini otomatis terisi berdasarkan gambar tabel baru Anda. Anda bisa mengedit barisnya langsung.")
     edited_df = st.data_editor(st.session_state.data_beban_guru, use_container_width=True)
-    edited_df['Banyak Kelas'] = edited_df['Mengajar Kelas'].apply(lambda x: len(x) if isinstance(x, list) else 0)
-    edited_df['Total JP Sepekan'] = edited_df['JP/Minggu'].astype(int) * edited_df['Banyak Kelas']
     st.session_state.data_beban_guru = edited_df
 
-    st.metric(label="📊 Total Alokasi Jam Pelajaran (JP) Sekolah / Minggu", value=f"{edited_df['Total JP Sepekan'].sum()} JP")
-    
     if st.button("⚡ Jalankan Engine AI Schedule Optimizer", type="primary"):
         plot_res = []
         
@@ -223,7 +248,7 @@ with tab1:
                             })
                         placed = True
 
-        # 3. CRITICAL PRIORITAS BARU: MATEMATIKA & IPA WAJIB DI JAM AWAL (MAKSIMAL JAM KE-5)
+        # 3. CRITICAL: MATEMATIKA & IPA WAJIB DI JAM AWAL (MAKSIMAL JAM KE-5)
         df_critical = edited_df[edited_df['Kode Mapel'].isin(['MAT', 'IPA'])]
         for _, row in df_critical.iterrows():
             g_name = row['Kode Guru']
@@ -265,7 +290,7 @@ with tab1:
             total_jp = int(row['JP/Minggu']) if pd.notna(row['JP/Minggu']) else 0
             if total_jp <= 0 or not isinstance(row['Mengajar Kelas'], list): continue
             
-            sesi = [3, 3] if total_jp == 6 else ([2, 2] if total_jp == 4 else [total_jp])
+            sesi = [3, 2] if total_jp == 5 else ([3, 3] if total_jp == 6 else ([2, 2] if total_jp == 4 else [total_jp]))
             for kelas in row['Mengajar Kelas']:
                 hari_terpakai_kelas = []
                 for jp_sesi in sesi:
@@ -294,7 +319,7 @@ with tab1:
                         if placed_sesi: break
 
         st.session_state.jadwal_terplot = plot_res
-        st.success("✔️ Re-Optimasi Berhasil! Kurikulum Kelas 7 telah disesuaikan (Seni Budaya diisi Prakarya).")
+        st.success("✔️ Re-Optimasi Berhasil Menggunakan Data Baru!")
         st.rerun()
 
 with tab2:
@@ -319,7 +344,7 @@ with tab2:
                     g_singkat = ambil_tiga_digit(matches[0]['kode_guru'])
                     tabel_tampil.at[h, f"Jam {j}"] = f"{matches[0]['kode_mapel']} ({g_singkat})"
                         
-        st.markdown(f"##### 📅 Preview Jadwal Teroptimasi **Kelas {pilihan_kelas}** (Eksklusif Jam Pagi untuk MAT/IPA/PJOK)")
+        st.markdown(f"##### 📅 Preview Jadwal Teroptimasi **Kelas {pilihan_kelas}**")
         st.dataframe(tabel_tampil, use_container_width=True)
         
         excel_data = export_excel_laporan(st.session_state.jadwal_terplot, semua_kelas, list_hari)
@@ -332,21 +357,14 @@ with tab3:
     else:
         audit_records = []
         for kls in semua_kelas:
-            tingkat = kls[0]  # Ambil angka depan kelas ('7', '8', atau '9')
             matches_kls = [d for d in st.session_state.jadwal_terplot if d['kelas'] == kls]
             df_kls = pd.DataFrame(matches_kls)
             
             unique_mapel = df_kls['kode_mapel'].nunique() if not df_kls.empty else 0
             total_jp_terisi = len(df_kls) if not df_kls.empty else 0
             
-            # Target mapel normal adalah 11 mapel
             target_mapel = 11 
-            
-            # Validasi kelengkapan
-            if unique_mapel >= target_mapel:
-                status = "✅ LENGKAP"
-            else:
-                status = f"⚠️ KURANG ({target_mapel - unique_mapel} Mapel Belum Terdaftar)"
+            status = "✅ LENGKAP" if unique_mapel >= target_mapel else f"⚠️ KURANG ({target_mapel - unique_mapel} Mapel)"
             
             audit_records.append({
                 "Kelas": kls,
@@ -357,7 +375,3 @@ with tab3:
             
         df_audit = pd.DataFrame(audit_records)
         st.dataframe(df_audit, use_container_width=True)
-        
-        st.markdown("### 💡 Analisis Mengapa Ada Slot Kosong:")
-        st.write("- **Kelas 7:** Aman. Seni Budaya tidak dianggap kurang karena sudah sah digantikan oleh Prakarya (PRAK) 3 JP oleh Guru Thiara M.")
-        st.write("- **Kelas 8 & 9:** Jika masih ada status *⚠️ KURANG*, silakan cek di Tab 1 apakah **Bahasa Jawa kelas 8 (baru terisi 8A-8B)** dan **Bahasa Inggris kelas 9E** sudah dilengkapi nama gurunya.")
