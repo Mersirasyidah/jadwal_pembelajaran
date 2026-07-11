@@ -18,7 +18,6 @@ def ambil_tiga_digit(nama_kode):
     return nama_str[:3].upper()
 
 def get_default_data():
-    # Data diperbarui total berdasarkan gambar yang diunggah pengguna
     raw_data = [
         {"No": 1, "Kode Guru": "Purwanto", "Nama Guru": "Purwanto, S.Pd.", "Mata Pelajaran": "IPA", "Kode Mapel": "IPA", "JP/Minggu": 5, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": ["Jumat"]},
         {"No": 2, "Kode Guru": "Nurkhasanah", "Nama Guru": "Nurkhasanah, S.Ag.", "Mata Pelajaran": "P.A. ISLAM", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": ["Rabu"]},
@@ -56,8 +55,6 @@ def get_default_data():
         {"No": 34, "Kode Guru": "Rizal R", "Nama Guru": "Rizal Rahmanto, S.Pd.", "Mata Pelajaran": "IPS", "Kode Mapel": "IPS", "JP/Minggu": 4, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E", "8A", "8B"], "Hari Libur/MGMP": ["Rabu"]}
     ]
     df_init = pd.DataFrame(raw_data)
-    df_init['Banyak Kelas'] = df_init['Mengajar Kelas'].apply(len)
-    df_init['Total JP Sepekan'] = df_init['JP/Minggu'] * df_init['Banyak Kelas']
     return df_init[["No", "Kode Guru", "Nama Guru", "Mata Pelajaran", "Kode Mapel", "JP/Minggu", "Mengajar Kelas", "Hari Libur/MGMP"]]
 
 if 'data_beban_guru' not in st.session_state:
@@ -67,7 +64,6 @@ if 'jadwal_terplot' not in st.session_state:
     st.session_state.jadwal_terplot = []
 
 def export_template_user(df_guru):
-    # Membuat template download yang sama persis formatnya dengan gambar user
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Template Data Guru"
@@ -85,11 +81,10 @@ def export_template_user(df_guru):
         ws.cell(row=r_idx+2, column=5, value=row["Kode Mapel"])
         ws.cell(row=r_idx+2, column=6, value=row["JP/Minggu"])
         
-        # Kelas diubah menjadi teks string dipisah koma (contoh: 7A,7B,7C)
-        kelas_str = ",".join(row["Mengajar Kelas"])
+        kelas_str = ",".join(row["Mengajar Kelas"]) if isinstance(row["Mengajar Kelas"], list) else str(row["Mengajar Kelas"])
         ws.cell(row=r_idx+2, column=7, value=kelas_str)
         
-        libur_str = ",".join(row["Hari Libur/MGMP"])
+        libur_str = ",".join(row["Hari Libur/MGMP"]) if isinstance(row["Hari Libur/MGMP"], list) else str(row["Hari Libur/MGMP"])
         ws.cell(row=r_idx+2, column=8, value=libur_str)
         
     output = io.BytesIO()
@@ -170,7 +165,6 @@ with st.sidebar:
     st.markdown("### 📥 Import Data Guru via Excel")
     uploaded_file = st.file_uploader("Unggah Master Data Kerja (.xlsx)", type=["xlsx"])
     
-    # Tombol template unduh menggunakan format teks bersih dipisah koma sesuai keinginan user
     template_data = export_template_user(get_default_data())
     st.download_button(
         label="📄 Download Template Format Excel",
@@ -232,6 +226,12 @@ with tab1:
                     h_target = list_hari[hari_index % len(list_hari)]
                     hari_index += 1
                     attempts += 1
+                    
+                    # Cek hari libur guru PJOK
+                    libur_guru = row['Hari Libur/MGMP'] if isinstance(row['Hari Libur/MGMP'], list) else []
+                    if h_target in libur_guru:
+                        continue
+                        
                     j_start = 2 if h_target == 'Senin' else 1
                     
                     bentrok = False
@@ -239,7 +239,9 @@ with tab1:
                         chk_j = j_start + step
                         bg = any(d['hari'] == h_target and d['jam'] == chk_j and d['kode_guru'] == g_pjok for d in plot_res)
                         bk = any(d['hari'] == h_target and d['jam'] == chk_j and d['kelas'] == kelas for d in plot_res)
-                        if bg or bk: bentrok = True; break
+                        if bg or bk: 
+                            bentrok = True
+                            break
                     if not bentrok:
                         for step in range(3):
                             plot_res.append({
@@ -253,7 +255,8 @@ with tab1:
         for _, row in df_critical.iterrows():
             g_name = row['Kode Guru']
             m_code = row['Kode Mapel']
-            total_jp = int(row['JP/Minggu'])
+            total_jp = int(row['JP/Minggu']) if pd.notna(row['JP/Minggu']) else 0
+            if total_jp <= 0: continue
             sesi = [3, 2] if total_jp == 5 else [total_jp]
             
             for kelas in row['Mengajar Kelas']:
@@ -262,15 +265,23 @@ with tab1:
                     placed_sesi = False
                     for hari in list_hari:
                         if hari in hari_terpakai_kelas: continue
-                        for j_mulai in range(1, 5):
+                        
+                        libur_guru = row['Hari Libur/MGMP'] if isinstance(row['Hari Libur/MGMP'], list) else []
+                        if hari in libur_guru: continue
+                        
+                        for j_mulai in range(1, 6):
                             if hari == 'Senin' and j_mulai == 1: continue
+                            max_jam = 6 if hari == 'Jumat' else 9
+                            if j_mulai + jp_sesi - 1 > max_jam: continue
                             
                             bentrok = False
                             for step in range(jp_sesi):
                                 c_j = j_mulai + step
                                 bg = any(d['hari'] == hari and d['jam'] == c_j and d['kode_guru'] == g_name for d in plot_res)
                                 bk = any(d['hari'] == hari and d['jam'] == c_j and d['kelas'] == kelas for d in plot_res)
-                                if bg or bk: bentrok = True; break
+                                if bg or bk: 
+                                    bentrok = True
+                                    break
                             if not bentrok:
                                 for step in range(jp_sesi):
                                     plot_res.append({
@@ -297,6 +308,10 @@ with tab1:
                     placed_sesi = False
                     for hari in list_hari:
                         if hari in hari_terpakai_kelas: continue
+                        
+                        libur_guru = row['Hari Libur/MGMP'] if isinstance(row['Hari Libur/MGMP'], list) else []
+                        if hari in libur_guru: continue
+                        
                         max_jam = 6 if hari == 'Jumat' else 9
                         for j_mulai in range(1, max_jam - jp_sesi + 2):
                             if hari == 'Senin' and j_mulai == 1: continue
@@ -306,7 +321,9 @@ with tab1:
                                 c_j = j_mulai + step
                                 bg = any(d['hari'] == hari and d['jam'] == c_j and d['kode_guru'] == g_name for d in plot_res)
                                 bk = any(d['hari'] == hari and d['jam'] == c_j and d['kelas'] == kelas for d in plot_res)
-                                if bg or bk: bentrok = True; break
+                                if bg or bk: 
+                                    bentrok = True
+                                    break
                             if not bentrok:
                                 for step in range(jp_sesi):
                                     plot_res.append({
@@ -341,8 +358,11 @@ with tab2:
                     
                 matches = [d for d in st.session_state.jadwal_terplot if d['hari'] == h and d['jam'] == j and d['kelas'] == pilihan_kelas]
                 if matches:
-                    g_singkat = ambil_tiga_digit(matches[0]['kode_guru'])
-                    tabel_tampil.at[h, f"Jam {j}"] = f"{matches[0]['kode_mapel']} ({g_singkat})"
+                    if len(matches) > 1 and "AGM" in matches[0]['kode_mapel']:
+                        tabel_tampil.at[h, f"Jam {j}"] = "AGM (PAR)"
+                    else:
+                        g_singkat = ambil_tiga_digit(matches[0]['kode_guru'])
+                        tabel_tampil.at[h, f"Jam {j}"] = f"{matches[0]['kode_mapel']} ({g_singkat})"
                         
         st.markdown(f"##### 📅 Preview Jadwal Teroptimasi **Kelas {pilihan_kelas}**")
         st.dataframe(tabel_tampil, use_container_width=True)
@@ -356,20 +376,37 @@ with tab3:
         st.info("Jalankan optimasi jadwal terlebih dahulu untuk melihat hasil audit.")
     else:
         audit_records = []
+        
+        # Daftar mapel wajib kurikulum sekolah
+        std_7 = ['AGM', 'PP', 'IND', 'MAT', 'IPA', 'IPS', 'ING', 'PJOK', 'INF', 'JW', 'PRAK']
+        std_8_9 = ['AGM', 'PP', 'IND', 'MAT', 'IPA', 'IPS', 'ING', 'PJOK', 'INF', 'JW', 'SB']
+        
         for kls in semua_kelas:
             matches_kls = [d for d in st.session_state.jadwal_terplot if d['kelas'] == kls]
             df_kls = pd.DataFrame(matches_kls)
             
-            unique_mapel = df_kls['kode_mapel'].nunique() if not df_kls.empty else 0
+            mapel_terisi = set(df_kls['kode_mapel'].unique()) if not df_kls.empty else set()
             total_jp_terisi = len(df_kls) if not df_kls.empty else 0
             
-            target_mapel = 11 
-            status = "✅ LENGKAP" if unique_mapel >= target_mapel else f"⚠️ KURANG ({target_mapel - unique_mapel} Mapel)"
+            # Membedakan aturan pengecekan kurikulum berdasarkan tingkat kelas
+            if kls.startswith('7'):
+                missing = [m for m in std_7 if m not in mapel_terisi]
+                total_target_mapel = len(std_7)
+            else:
+                missing = [m for m in std_8_9 if m not in mapel_terisi]
+                total_target_mapel = len(std_8_9)
+                
+            unique_mapel = total_target_mapel - len(missing)
             
+            if len(missing) == 0:
+                status = "✅ LENGKAP"
+            else:
+                status = f"⚠️ KURANG ({', '.join(missing)})"
+                
             audit_records.append({
                 "Kelas": kls,
-                "Jumlah Mapel Terplot": unique_mapel,
-                "Total JP Terisi": total_jp_terisi,
+                "Jumlah Mapel Terplot": f"{unique_mapel} / {total_target_mapel}",
+                "Total JP Terisi": f"{total_jp_terisi} JP",
                 "Status Kelengkapan": status
             })
             
