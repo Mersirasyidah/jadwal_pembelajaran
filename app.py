@@ -4,7 +4,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import io
 
-st.set_page_config(page_title="Smart Scheduler SMPN 2 Banguntapan v3", layout="wide")
+st.set_page_config(page_title="Smart Scheduler SMPN 2 Banguntapan v4", layout="wide")
 
 list_hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat']
 tingkatan = ['7', '8', '9']
@@ -55,44 +55,66 @@ if 'data_beban_guru' not in st.session_state:
 if 'jadwal_terplot' not in st.session_state:
     st.session_state.jadwal_terplot = []
 
-st.title("🏫 AI Timetable Scheduler - ENGINE V3 (Optimasi Hari Libur/MGMP)")
-st.subheader("Aturan Baru: Hari Libur/MGMP diizinkan untuk mengajar di jam pagi (Jam 1 - 4)")
+st.title("🏫 AI Timetable Scheduler - ENGINE V4 (Perbaikan Kode AGM & Prioritas Prakarya)")
 
 tab1, tab2 = st.tabs(["📋 Data Input & Engine AI", "🗓️ Cetak Master Jadwal"])
 
 with tab1:
-    st.info("💡 Logika Engine V3: Jika hari tersebut terdaftar di kolom 'Hari Libur/MGMP', Guru bersangkutan diperbolehkan mengajar HANYA pada jam 1 s.d 4 (tidak boleh ditaruh di jam 5 ke atas).")
     edited_df = st.data_editor(st.session_state.data_beban_guru, use_container_width=True)
     st.session_state.data_beban_guru = edited_df
 
-    if st.button("⚡ Jalankan Engine AI Schedule Optimizer (V3)", type="primary"):
+    if st.button("⚡ Jalankan Engine AI Schedule Optimizer (V4)", type="primary"):
         plot_res = []
         
-        # Fungsi pembantu mengecek batas jam mengajar guru (Rule Libur = Max jam 4)
         def cek_ketersediaan_waktu_guru(hari, jam, libur_list):
             if hari in libur_list:
-                return jam <= 4  # Hanya boleh jam 1, 2, 3, 4 jika hari libur/MGMP
+                return jam <= 4  # Jam 1-4 untuk hari MGMP/Libur
             return True
 
-        # 1. PLOT AGAMA PARALEL
-        df_agama = edited_df[edited_df['Mata Pelajaran'].str.contains("P.A.", case=False, na=False)]
+        # 1. PERBAIKAN MUTLAK: PLOT AGAMA (Kunci Kode Guru yang Sesuai secara Absolut)
+        df_agama = edited_df[edited_df['Kode Mapel'] == 'AGM']
         hari_agama_map = {"7": ("Rabu", 4), "8": ("Kamis", 4), "9": ("Selasa", 4)}
         for kelas in semua_kelas:
             t = kelas[0]
             h_opt, j_opt = hari_agama_map[t]
-            guru_agama_rombel = df_agama[df_agama['Mengajar Kelas'].apply(lambda x: kelas in x if isinstance(x, list) else False)]
-            for _, g_row in guru_agama_rombel.iterrows():
-                libur_guru = g_row['Hari Libur/MGMP'] if isinstance(g_row['Hari Libur/MGMP'], list) else []
-                # Cek apakah jam 4, 5, 6 diizinkan bagi guru agama
-                aman = True
+            # Temukan guru yang benar-benar ditugaskan untuk kelas ini
+            guru_terpilih = None
+            for _, g_row in df_agama.iterrows():
+                if kelas in g_row['Mengajar Kelas']:
+                    guru_terpilih = g_row['Kode Guru']
+                    break
+            
+            if guru_terpilih:
                 for step in range(3):
-                    if not cek_ketersediaan_waktu_guru(h_opt, j_opt + step, libur_guru):
-                        aman = False
-                if aman:
-                    for step in range(3):
-                        plot_res.append({"kode_guru": g_row['Kode Guru'], "kode_mapel": "AGM", "kelas": kelas, "hari": h_opt, "jam": j_opt + step})
+                    plot_res.append({
+                        "kode_guru": guru_terpilih, # Kunci nilai absolut (misal: "Anik M")
+                        "kode_mapel": "AGM", 
+                        "kelas": kelas, 
+                        "hari": h_opt, 
+                        "jam": j_opt + step
+                    })
 
-        # 2. PJOK JAM PERTAMA PAGI
+        # 2. PRIORITY ELEVATION: PRAKARYA DINAINKAN KE ATAS AGAR MENDAPAT SLOT PAGI HARI LIBUR
+        df_prak = edited_df[edited_df['Kode Mapel'] == 'PRAK']
+        for _, row in df_prak.iterrows():
+            g_name = row['Kode Guru']
+            libur_guru = row['Hari Libur/MGMP'] if isinstance(row['Hari Libur/MGMP'], list) else []
+            for kelas in row['Mengajar Kelas']:
+                placed_prak = False
+                for hari in list_hari:
+                    for j_mulai in range(1, 5): # Utamakan jam pagi hari libur/biasa
+                        if hari == 'Senin' and j_mulai == 1: continue
+                        if not all(cek_ketersediaan_waktu_guru(hari, j_mulai + s, libur_guru) for s in range(3)):
+                            continue
+                        if any(d['hari'] == hari and d['jam'] == (j_mulai + s) and (d['kode_guru'] == g_name or d['kelas'] == kelas) for s in range(3) for d in plot_res):
+                            continue
+                        for s in range(3):
+                            plot_res.append({"kode_guru": g_name, "kode_mapel": "PRAK", "kelas": kelas, "hari": hari, "jam": j_mulai + s})
+                        placed_prak = True
+                        break
+                    if placed_prak: break
+
+        # 3. PJOK JAM PERTAMA PAGI
         df_pjok = edited_df[edited_df['Kode Mapel'] == 'PJOK']
         hari_idx = 0
         for _, row in df_pjok.iterrows():
@@ -104,30 +126,22 @@ with tab1:
                     h_target = list_hari[hari_idx % len(list_hari)]
                     hari_idx += 1
                     j_start = 2 if h_target == 'Senin' else 1
-                    
-                    # Validasi aturan libur jam pagi
                     if not all(cek_ketersediaan_waktu_guru(h_target, j_start + s, libur_guru) for s in range(3)):
                         continue
-                        
-                    bentrok = False
+                    if any(d['hari'] == h_target and d['jam'] == (j_start + s) and (d['kode_guru'] == g_pjok or d['kelas'] == kelas) for s in range(3) for d in plot_res):
+                        continue
                     for s in range(3):
-                        chk_j = j_start + s
-                        if any(d['hari'] == h_target and d['jam'] == chk_j and (d['kode_guru'] == g_pjok or d['kelas'] == kelas) for d in plot_res):
-                            bentrok = True
-                            break
-                    if not bentrok:
-                        for s in range(3):
-                            plot_res.append({"kode_guru": g_pjok, "kode_mapel": "PJOK", "kelas": kelas, "hari": h_target, "jam": j_start + s})
-                        placed = True
-                        break
+                        plot_res.append({"kode_guru": g_pjok, "kode_mapel": "PJOK", "kelas": kelas, "hari": h_target, "jam": j_start + s})
+                    placed = True
+                    break
 
-        # 3. CRITICAL: MATEMATIKA & IPA (MAKSIMAL JAM KE-5)
+        # 4. MATEMATIKA & IPA (MAKSIMAL JAM KE-5)
         df_critical = edited_df[edited_df['Kode Mapel'].isin(['MAT', 'IPA'])]
         for _, row in df_critical.iterrows():
             g_name = row['Kode Guru']
             m_code = row['Kode Mapel']
             libur_guru = row['Hari Libur/MGMP'] if isinstance(row['Hari Libur/MGMP'], list) else []
-            total_jp = int(row['JP/Minggu']) if pd.notna(row['JP/Minggu']) else 0
+            total_jp = int(row['JP/Minggu'])
             sesi = [3, 2] if total_jp == 5 else [total_jp]
             for kelas in row['Mengajar Kelas']:
                 hari_terpakai = []
@@ -148,24 +162,21 @@ with tab1:
                             break
                         if placed_sesi: break
 
-        # 4. BOTTLENECK MAPEL UMUM & PRAKARYA
-        df_umum = edited_df[(~edited_df['Mata Pelajaran'].str.contains("P.A.", case=False, na=False)) & (~edited_df['Kode Mapel'].isin(['PJOK', 'MAT', 'IPA']))]
+        # 5. MAPEL SISA LAINNYA
+        df_umum = edited_df[(edited_df['Kode Mapel'] != 'AGM') & (edited_df['Kode Mapel'] != 'PRAK') & (~edited_df['Kode Mapel'].isin(['PJOK', 'MAT', 'IPA']))]
         for _, row in df_umum.iterrows():
             g_name = row['Kode Guru']
             m_code = row['Kode Mapel']
             libur_guru = row['Hari Libur/MGMP'] if isinstance(row['Hari Libur/MGMP'], list) else []
             total_jp = int(row['JP/Minggu']) if pd.notna(row['JP/Minggu']) else 0
-            if total_jp <= 0 or not isinstance(row['Mengajar Kelas'], list): continue
+            if total_jp <= 0: continue
             
             for kelas in row['Mengajar Kelas']:
                 sisa_jp = total_jp
                 hari_terpakai = []
-                
-                # Iterasi pola pembagian jam 3, 2, 1
                 for pola in [3, 2, 1]:
                     if sisa_jp <= 0: break
                     if pola > sisa_jp: continue
-                    
                     for hari in list_hari:
                         if hari in hari_terpakai and pola > 1: continue
                         max_jam = 6 if hari == 'Jumat' else 9
@@ -184,7 +195,6 @@ with tab1:
                             break
                         if placed_sub: break
 
-                # Sapu bersih jam pencar sisa
                 while sisa_jp > 0:
                     placed_1 = False
                     for hari in list_hari:
@@ -202,7 +212,7 @@ with tab1:
                     if not placed_1: break
 
         st.session_state.jadwal_terplot = plot_res
-        st.success("✔️ Re-Optimasi V3 Selesai! Slot Jam Pagi Hari Libur Sukses Digunakan.")
+        st.success("✔️ Perbaikan Selesai! Kode AGM Akurat & Prakarya Mengisi Jam Pagi.")
         st.rerun()
 
 with tab2:
