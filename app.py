@@ -12,8 +12,15 @@ tingkatan = ['7', '8', '9']
 abjad = ['A', 'B', 'C', 'D', 'E']
 semua_kelas = [f"{t}{a}" for t in tingkatan for a in abjad]
 
-# Inisialisasi Data Master Guru dengan Kalkulasi Banyak Kelas & Total JP Sepekan
-if 'data_beban_guru' not in st.session_state:
+# Fungsi pembantu untuk membuat singkatan nama guru menjadi 3 digit awal
+def ambil_tiga_digit(nama_kode):
+    if pd.isna(nama_kode) or not nama_kode:
+        return ""
+    nama_str = str(nama_kode).strip()
+    return nama_str[:3].upper()
+
+# Data Default Awal jika user tidak mengupload file
+def get_default_data():
     raw_data = [
         {"No": 1, "Kode Guru": "Purwanto", "Nama Guru": "Purwanto, S.Pd.", "Mata Pelajaran": "IPA", "Kode Mapel": "IPA", "JP/Minggu": 5, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": ["Kamis"]},
         {"No": 2, "Kode Guru": "Nurkhasanah", "Nama Guru": "Nurkhasanah, S.Ag.", "Mata Pelajaran": "P.A. ISLAM", "Kode Mapel": "AGM", "JP/Minggu": 3, "Mengajar Kelas": ["9A", "9B", "9C", "9D", "9E"], "Hari Libur/MGMP": []},
@@ -50,17 +57,17 @@ if 'data_beban_guru' not in st.session_state:
         {"No": 33, "Kode Guru": "Rizal R", "Nama Guru": "Rizal Rahmanto, S.Pd.", "Mata Pelajaran": "IPS", "Kode Mapel": "IPS", "JP/Minggu": 4, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E", "8A", "8B"], "Hari Libur/MGMP": []}
     ]
     df_init = pd.DataFrame(raw_data)
-    # Kalkulasi penambahan kolom baru secara langsung
     df_init['Banyak Kelas'] = df_init['Mengajar Kelas'].apply(len)
     df_init['Total JP Sepekan'] = df_init['JP/Minggu'] * df_init['Banyak Kelas']
-    
-    # Atur urutan kolom agar rapi
-    kolom_urut = ["No", "Kode Guru", "Nama Guru", "Mata Pelajaran", "Kode Mapel", "JP/Minggu", "Banyak Kelas", "Total JP Sepekan", "Mengajar Kelas", "Hari Libur/MGMP"]
-    st.session_state.data_beban_guru = df_init[kolom_urut]
+    return df_init[["No", "Kode Guru", "Nama Guru", "Mata Pelajaran", "Kode Mapel", "JP/Minggu", "Banyak Kelas", "Total JP Sepekan", "Mengajar Kelas", "Hari Libur/MGMP"]]
+
+if 'data_beban_guru' not in st.session_state:
+    st.session_state.data_beban_guru = get_default_data()
 
 if 'jadwal_terplot' not in st.session_state:
     st.session_state.jadwal_terplot = []
 
+# Fungsi Ekspor Excel Output (Menggunakan Format 3 Huruf Guru Sesuai Request)
 def export_excel_laporan(plotting_data, kelas_list, hari_list):
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -73,7 +80,7 @@ def export_excel_laporan(plotting_data, kelas_list, hari_list):
     thin_border = Border(left=Side(style='thin', color='D1D5DB'), right=Side(style='thin', color='D1D5DB'), top=Side(style='thin', color='D1D5DB'), bottom=Side(style='thin', color='D1D5DB'))
     
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(kelas_list) + 2)
-    ws["A1"] = "JADWAL TIMETABLE LENGKAP - OPTIMALISASI AGAMA PARALEL & PJOK PAGI"
+    ws["A1"] = "JADWAL TIMETABLE LENGKAP - SMPN 2 BANGUNTAPAN"
     ws["A1"].font = Font(name="Arial", size=13, bold=True, color="1B365D")
     ws["A1"].alignment = Alignment(horizontal="center")
     
@@ -115,9 +122,10 @@ def export_excel_laporan(plotting_data, kelas_list, hari_list):
                 matches = [d for d in plotting_data if d['hari'] == hari and d['jam'] == jam and d['kelas'] == kelas]
                 if matches:
                     if len(matches) > 1:
-                        cell_kbm.value = "PARALEL AGAMA\n(ISL/KRI/KAT/HIN)"
+                        cell_kbm.value = "AGM (PARALEL)"
                     else:
-                        cell_kbm.value = f"{matches[0]['kode_mapel']}\n{matches[0]['kode_guru']}"
+                        g_3d = ambil_tiga_digit(matches[0]['kode_guru'])
+                        cell_kbm.value = f"{matches[0]['kode_mapel']}\\n({g_3d})"
                         
         current_row += max_jam
         
@@ -127,28 +135,60 @@ def export_excel_laporan(plotting_data, kelas_list, hari_list):
     return output
 
 st.title("🏫 AI Smart Timetable - Versi Optimasi Khusus")
-st.subheader("SMPN 2 Banguntapan — Penyelarasan Restriksi & Penghitungan Otomatis Beban Kerja Guru")
+st.subheader("SMPN 2 Banguntapan — Import Excel & Ringkasan Tampilan Kode Guru 3 Digit")
 
-tab1, tab2 = st.tabs(["📋 Master Beban Kerja Guru", "🗓️ Hasil Peta Jadwal KBM"])
+# FITUR UPLOAD EXCEL BARU
+with st.sidebar:
+    st.markdown("### 📥 Import Data Guru via Excel")
+    uploaded_file = st.file_uploader("Unggah Master Data Kerja (.xlsx)", type=["xlsx"])
+    
+    # Tombol untuk mengunduh template format excel agar user tidak bingung
+    template_buffer = io.BytesIO()
+    get_default_data().to_excel(template_buffer, index=False)
+    st.download_button(
+        label="📄 Download Template Format Excel",
+        data=template_buffer.getvalue(),
+        file_name="Template_Data_Guru.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    if uploaded_file is not None:
+        try:
+            df_upload = pd.read_excel(uploaded_file)
+            # Evaluasi string list kembali seandainya terbaca sebagai text biasa saat di-upload
+            if 'Mengajar Kelas' in df_upload.columns:
+                df_upload['Mengajar Kelas'] = df_upload['Mengajar Kelas'].apply(
+                    lambda x: eval(x) if isinstance(x, str) and x.startswith('[') else (str(x).split(',') if ',' in str(x) else [str(x)])
+                )
+            if 'Hari Libur/MGMP' in df_upload.columns:
+                df_upload['Hari Libur/MGMP'] = df_upload['Hari Libur/MGMP'].apply(
+                    lambda x: eval(x) if isinstance(x, str) and x.startswith('[') else ([] if pd.isna(x) else [str(x)])
+                )
+            
+            df_upload['Banyak Kelas'] = df_upload['Mengajar Kelas'].apply(len)
+            df_upload['Total JP Sepekan'] = df_upload['JP/Minggu'] * df_upload['Banyak Kelas']
+            st.session_state.data_beban_guru = df_upload
+            st.sidebar.success("✔️ File Excel Berhasil Di-import!")
+        except Exception as e:
+            st.sidebar.error(f"Gagal membaca file: {e}")
+
+tab1, tab2 = st.tabs(["📋 Data Beban Mengajar Guru", "🗓️ Hasil Peta Jadwal KBM"])
 
 with tab1:
-    st.info("💡 **Informasi Transparansi:** Kolom **Banyak Kelas** dan **Total JP Sepekan** akan otomatis terhitung secara realtime apabila daftar ruang rombel mengajar diubah.")
+    st.info("💡 Anda bisa mengubah data langsung pada tabel di bawah ini atau menggunakan fitur **Upload Excel** di bilah kiri samping (sidebar).")
     
-    # Trigger sinkronisasi ulang jika user mengubah rombel mengajar di data_editor
     edited_df = st.data_editor(st.session_state.data_beban_guru, use_container_width=True)
     
-    # Recalculate secara aman jika ada perubahan baris data
     edited_df['Banyak Kelas'] = edited_df['Mengajar Kelas'].apply(lambda x: len(x) if isinstance(x, list) else 0)
     edited_df['Total JP Sepekan'] = edited_df['JP/Minggu'].astype(int) * edited_df['Banyak Kelas']
     st.session_state.data_beban_guru = edited_df
 
-    # Metrik Total Jam Kerja Seluruh Sekolah
     st.metric(label="📊 Total Alokasi Jam Pelajaran (JP) Sekolah / Minggu", value=f"{edited_df['Total JP Sepekan'].sum()} JP")
     
     if st.button("⚡ Jalankan Engine AI Schedule Optimizer", type="primary"):
         plot_res = []
         
-        # 1. PETA PARALEL AGAMA (Mengunci seluruh varian agama pada jam yang sama)
+        # 1. PETA PARALEL AGAMA
         df_agama = edited_df[edited_df['Mata Pelajaran'].str.contains("P.A.", case=False, na=False)]
         hari_agama_map = {"7": ("Rabu", 4), "8": ("Kamis", 4), "9": ("Selasa", 4)}
         
@@ -165,7 +205,7 @@ with tab1:
                         "kelas": kelas, "hari": h_opt, "jam": j_opt + step
                     })
                     
-        # 2. STRATEGI KUNCI UTAMA: PJOK JAM PERTAMA PAGI (3 JP UTUH BERTURUT-TURUT)
+        # 2. STRATEGI KUNCI UTAMA: PJOK JAM PERTAMA PAGI
         df_pjok = edited_df[edited_df['Kode Mapel'] == 'PJOK']
         hari_index = 0
         
@@ -198,7 +238,7 @@ with tab1:
                             })
                         placed = True
 
-        # 3. PEMINTALAN MAPEL BESAR LAINNYA DI-SPLIT DENGAN JARAK HARI (MINIMAL 1-2 HARI JEDA)
+        # 3. MAPEL BESAR DENGAN SPLIT JEDA HARI
         df_umum = edited_df[(~edited_df['Mata Pelajaran'].str.contains("P.A.", case=False, na=False)) & (edited_df['Kode Mapel'] != 'PJOK') & (edited_df['Kode Mapel'] != 'BK')]
         
         for _, row in df_umum.iterrows():
@@ -248,7 +288,7 @@ with tab1:
 
         st.session_state.jadwal_terplot = plot_res
         st.success("✔️ Peta Jadwal Berhasil Diperbarui Sesuai Seluruh Aturan Restriksi Baru!")
-        st.experimental_rerun()
+        st.rerun()
 
 with tab2:
     if not st.session_state.jadwal_terplot:
@@ -270,12 +310,12 @@ with tab2:
                 matches = [d for d in st.session_state.jadwal_terplot if d['hari'] == h and d['jam'] == j and d['kelas'] == pilihan_kelas]
                 if matches:
                     if len(matches) > 1:
-                        labels = [m['kode_mapel'] for m in matches]
-                        tabel_tampil.at[h, f"Jam {j}"] = " | ".join(labels)
+                        tabel_tampil.at[h, f"Jam {j}"] = "AGM (PARALEL)"
                     else:
-                        tabel_tampil.at[h, f"Jam {j}"] = f"{matches[0]['kode_mapel']} [{matches[0]['kode_guru']}]"
+                        g_singkat = ambil_tiga_digit(matches[0]['kode_guru'])
+                        tabel_tampil.at[h, f"Jam {j}"] = f"{matches[0]['kode_mapel']} ({g_singkat})"
                         
-        st.markdown(f"##### 📅 Preview Jadwal Teroptimasi Kontrol Ketat **Kelas {pilihan_kelas}**")
+        st.markdown(f"##### 📅 Preview Jadwal Teroptimasi **Kelas {pilihan_kelas}**")
         st.dataframe(tabel_tampil, use_container_width=True)
         
         excel_data = export_excel_laporan(st.session_state.jadwal_terplot, semua_kelas, list_hari)
