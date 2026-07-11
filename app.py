@@ -6,7 +6,7 @@ from openpyxl.utils import get_column_letter
 import io
 
 # 1. Konfigurasi Halaman & State
-st.set_page_config(page_title="Sistem Peta Jadwal SMP", layout="wide")
+st.set_page_config(page_title="Sistem Peta Jadwal SMP Smart", layout="wide")
 
 # Data Master
 list_hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat']
@@ -24,21 +24,23 @@ if 'data_beban_guru' not in st.session_state:
             "Nama Guru": "Ani Pujiastuti, M.Hum",
             "Mata Pelajaran": "Bahasa Inggris",
             "Kode Mapel": "ING",
-            "JP per Minggu": 3,
-            "Jumlah Kelas": 3,
-            "Total JP": 9,
-            "Mengajar Kelas": ["7A", "7B", "7C"]
+            "JP per Minggu": 5,
+            "Jumlah Kelas": 2,
+            "Total JP": 10,
+            "Mengajar Kelas": ["7A", "7B"],
+            "Hari Libur/MGMP": ["Jumat"]
         },
         {
             "No": 2,
             "Kode Guru": "G02",
-            "Nama Guru": "Agus Fuadi, M.Pd",
-            "Mata Pelajaran": "Informatika",
-            "Kode Mapel": "INF",
+            "Nama Guru": "Budi Santoso, S.Pd",
+            "Mata Pelajaran": "Pendidikan Jasmani Olahraga & Kesehatan",
+            "Kode Mapel": "PJOK",
             "JP per Minggu": 3,
             "Jumlah Kelas": 2,
             "Total JP": 6,
-            "Mengajar Kelas": ["7A", "8A"]
+            "Mengajar Kelas": ["7A", "8A"],
+            "Hari Libur/MGMP": ["Kamis"]
         }
     ])
 
@@ -120,95 +122,139 @@ def export_excel_laporan(plotting_data, kelas_list, hari_list):
     return output
 
 # ==================== MENU UTAMA STREAMLIT ====================
-st.title("📋 Generator Jadwal Sementara & Distribusi Beban Guru")
-st.caption("Masukkan detail beban mengajar guru, lalu biarkan sistem memetakan tabel jadwal per kelas secara otomatis.")
+st.title("📋 Smart Generator Jadwal & Peta Hambatan Guru")
+st.caption("Sistem optimasi jadwal sekolah dengan pembatas Hari Libur/MGMP, Jam Pagi PJOK, dan Pembagian Maksimal 3 JP/Hari.")
 
-tab1, tab2 = st.tabs(["📝 1. Input Data Beban Mengajar", "📅 2. Peta Jadwal Sementara per Kelas"])
+tab1, tab2 = st.tabs(["📝 1. Input Beban & Aturan Guru", "📅 2. Peta Jadwal Hasil Optimasi"])
 
 # ==================== TAB 1: FORM INPUT BEBAN DATA GURU ====================
 with tab1:
-    st.subheader("Form Input Detail Mengajar Guru")
-    st.info("Silakan isi tabel di bawah ini. Anda bisa menambah baris baru dengan menekan tombol **(+) Add Row** di bagian bawah tabel.")
+    st.subheader("Form Input Parameter & Aturan Khusus")
+    st.info("💡 **Fitur Baru**: Kolom **Hari Libur/MGMP** digunakan agar sistem mengosongkan jadwal guru tersebut pada hari terpilih. Mapel **PJOK** otomatis dikunci pada jam pagi.")
     
-    # MENGGUNAKAN MODAL DICTIONARY MURNI (Solusi Mutakhir Bebas TypeError Python 3.14)
+    # MENGGUNAKAN DICTIONARY CONFIG DENGAN DUA MULTISELECT (Kelas & Hari Libur)
     edited_df = st.data_editor(
         st.session_state.data_beban_guru,
         column_config={
             "No": {"label": "No", "width": "small", "min_value": 1},
-            "Kode Guru": {"label": "Kode Guru", "help": "Contoh: G01"},
-            "Nama Guru": {"label": "Nama Guru", "help": "Nama Lengkap Guru"},
+            "Kode Guru": {"label": "Kode Guru"},
+            "Nama Guru": {"label": "Nama Guru"},
             "Mata Pelajaran": {"label": "Mata Pelajaran"},
-            "Kode Mapel": {"label": "Kode Mapel", "help": "Contoh: INF / ING"},
+            "Kode Mapel": {"label": "Kode Mapel", "help": "Ketik PJOK untuk aturan khusus olahraga pagi"},
             "JP per Minggu": {"label": "JP / Minggu", "min_value": 1, "default": 3},
             "Jumlah Kelas": {"label": "Jml Kelas", "min_value": 1, "default": 1},
             "Total JP": {"label": "Total JP (Otomatis)", "disabled": True},
-            "Mengajar Kelas": st.column_config.MultiselectColumn(label="Mengajar Kelas Apa Saja", options=semua_kelas)
+            "Mengajar Kelas": st.column_config.MultiselectColumn(label="Mengajar Kelas Apa Saja", options=semua_kelas),
+            "Hari Libur/MGMP": st.column_config.MultiselectColumn(label="Hari Libur / MGMP", options=list_hari)
         },
         num_rows="dynamic",
         use_container_width=True,
-        key="editor_beban"
+        key="editor_beban_v2"
     )
     
     # Tombol Aksi untuk hitung & kunci data
-    if st.button("💾 Simpan Data & Proses Peta Jadwal", type="primary"):
-        # Hitung Total JP secara otomatis berdasarkan perkalian (JP per Minggu * Jumlah Kelas)
+    if st.button("⚡ Simpan Data & Jalankan Smart Optimization Scheduler", type="primary"):
+        # Hitung Total JP otomatis
         edited_df["Total JP"] = edited_df["JP per Minggu"] * edited_df["Jumlah Kelas"]
         st.session_state.data_beban_guru = edited_df
         
-        # PROSES AUTOMATIC PLOTTING KE JADWAL SEMENTARA
-        st.session_state.jadwal_terplot = [] # Reset data lama
+        # PROSES INTI AUTOMATIC PLOTTING JADWAL
+        st.session_state.jadwal_terplot = [] 
         
-        # Dictionary untuk mencatat posisi jam terakhir yang terisi di tiap kelas & hari
+        # Penunjuk posisi jam kosong saat ini untuk tiap kelas di masing-masing hari
         pointer_kbm = {h: {k: (2 if h == 'Senin' else 1) for k in semua_kelas} for h in list_hari}
         
-        for _, row in edited_df.iterrows():
+        # Pengelompokan baris: Dahulukan PJOK agar mendapat prioritas jam pagi utama
+        edited_df['is_pjok'] = edited_df['Kode Mapel'].str.upper() == 'PJOK'
+        df_sorted = edited_df.sort_values(by='is_pjok', ascending=False)
+        
+        for _, row in df_sorted.iterrows():
             k_guru = row["Kode Guru"]
-            k_mapel = row["Kode Mapel"]
+            k_mapel = str(row["Kode Mapel"]).upper()
             kelas_diampu = row["Mengajar Kelas"]
             jp_per_minggu = int(row["JP per Minggu"]) if pd.notna(row["JP per Minggu"]) else 0
+            hari_libur = row["Hari Libur/MGMP"] if isinstance(row["Hari Libur/MGMP"], list) else []
             
             if not k_guru or not k_mapel or not isinstance(kelas_diampu, list):
                 continue
                 
-            # Distribusikan JP ke kelas-kelas yang dipilih
+            # Proses untuk setiap rombel kelas yang diajar oleh guru ini
             for kelas in kelas_diampu:
                 jp_tersisa = jp_per_minggu
                 
-                # Coba plotting menyebar dari senin sampai jumat
                 for hari in list_hari:
                     if jp_tersisa <= 0:
                         break
                         
+                    # Aturan 1: Lewati hari jika hari tersebut adalah hari libur/MGMP guru yang bersangkutan
+                    if hari in hari_libur:
+                        continue
+                        
                     max_jam = 6 if hari == 'Jumat' else 9
-                    # Batasi maksimal jam per mapel dalam satu hari agar tidak padat (maks 3 JP per hari)
-                    alokasi_hari_ini = min(jp_tersisa, 3 if hari != 'Jumat' else 2)
                     
-                    jam_mulai = pointer_kbm[hari][kelas]
+                    # Aturan 3: Batas Maksimal mengajar dalam sehari untuk setiap mapel dalam kelas adalah 3 JP
+                    alokasi_hari_ini = min(jp_tersisa, 3)
                     
-                    if jam_mulai + alokasi_hari_ini - 1 <= max_jam:
-                        # Cek bentrok guru di jam tersebut lintas kelas
+                    # Aturan 2: Aturan khusus penempatan PJOK di jam pagi
+                    if k_mapel == "PJOK":
+                        # Selain senin jam ke-1 (senin jam 1 upacara, jadi senin PJOK mulai jam ke-2)
+                        jam_mulai_pjok = 2 if hari == 'Senin' else 1
+                        
+                        # Definisikan batas akhir jam pagi (misal sebelum istirahat pertama / maksimal selesai jam ke-4)
+                        if jam_mulai_pjok + alokasi_hari_ini - 1 > 4:
+                            continue # Skip jika tidak muat di pagi hari terpilih
+                            
+                        # Validasi tabrakan guru PJOK mengajar di kelas lain pada jam yang sama
                         bentrok = False
                         for step in range(alokasi_hari_ini):
-                            target_j = jam_mulai + step
+                            target_j = jam_mulai_pjok + step
                             bg = next((j for j in st.session_state.jadwal_terplot if j['hari'] == hari and j['jam'] == target_j and j['kode_guru'] == k_guru), None)
                             if bg:
                                 bentrok = True
                                 break
                         
                         if not bentrok:
-                            # Masukkan ke jadwal terplot
                             for step in range(alokasi_hari_ini):
                                 st.session_state.jadwal_terplot.append({
                                     "kode_guru": k_guru,
                                     "kode_mapel": k_mapel,
                                     "kelas": kelas,
                                     "hari": hari,
-                                    "jam": jam_mulai + step
+                                    "jam": jam_mulai_pjok + step
                                 })
-                            pointer_kbm[hari][kelas] += alokasi_hari_ini
+                            # Jika jam pagi terpakai PJOK, majukan pointer kelas umum agar tidak menumpuk
+                            if pointer_kbm[hari][kelas] == jam_mulai_pjok:
+                                pointer_kbm[hari][kelas] += alokasi_hari_ini
                             jp_tersisa -= alokasi_hari_ini
                             
-        st.success("✔️ Data berhasil disimpan dan Jadwal Sementara berhasil dibuat!")
+                    else:
+                        # LOGIKA UNTUK MAPEL UMUM NON-PJOK
+                        jam_mulai = pointer_kbm[hari][kelas]
+                        
+                        # Validasi kapasitas slot hari
+                        if jam_mulai + alokasi_hari_ini - 1 <= max_jam:
+                            bentrok = False
+                            for step in range(alokasi_hari_ini):
+                                target_j = jam_mulai + step
+                                # Cek tabrakan mengajar guru lintas kelas
+                                bg = next((j for j in st.session_state.jadwal_terplot if j['hari'] == hari and j['jam'] == target_j and j['kode_guru'] == k_guru), None)
+                                if bg:
+                                    bentrok = True
+                                    break
+                            
+                            if not bentrok:
+                                for step in range(alokasi_hari_ini):
+                                    st.session_state.jadwal_terplot.append({
+                                        "kode_guru": k_guru,
+                                        "kode_mapel": k_mapel,
+                                        "kelas": kelas,
+                                        "hari": hari,
+                                        "jam": jam_mulai + step
+                                    })
+                                pointer_kbm[hari][kelas] += alokasi_hari_ini
+                                jp_tersisa -= alokasi_hari_ini
+                                
+        st.success("✔️ Optimalisasi Berhasil! Jadwal telah disesuaikan dengan aturan komparasi baru.")
         st.rerun()
 
 # ==================== TAB 2: OUTPUT JADWAL PER KELAS ====================
@@ -220,13 +266,12 @@ with tab2:
         pilihan_view_kelas = st.selectbox("Pilih Kelas untuk Melihat Jadwal:", semua_kelas)
     with c_v2:
         st.markdown("<br>", unsafe_allow_html=True)
-        # Tombol Download Excel Laporan Akhir Keseluruhan
         if st.session_state.jadwal_terplot:
             data_file_excel = export_excel_laporan(st.session_state.jadwal_terplot, semua_kelas, list_hari)
             st.download_button(
                 label="📥 Unduh Seluruh Jadwal (Format Excel Cetak)",
                 data=data_file_excel,
-                file_name="Jadwal_Sementara_SMP.xlsx",
+                file_name="Jadwal_Optimasi_SMP.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
