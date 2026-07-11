@@ -130,18 +130,18 @@ with tab1:
     st.subheader("Form Input Detail Mengajar Guru")
     st.info("Silakan isi tabel di bawah ini. Anda bisa menambah baris baru dengan menekan tombol **(+) Add Row** di bagian bawah tabel.")
     
-    # Menggunakan st.data_editor dengan kolom yang sudah diperbaiki (Fix label=)
+    # MENGGUNAKAN MODAL DICTIONARY MURNI (Solusi Mutakhir Bebas TypeError Python 3.14)
     edited_df = st.data_editor(
         st.session_state.data_beban_guru,
         column_config={
-            "No": st.column_config.NumberColumn(label="No", width="small", min_value=1),
-            "Kode Guru": st.column_config.TextColumn(label="Kode Guru", placeholder="Contoh: G01"),
-            "Nama Guru": st.column_config.TextColumn(label="Nama Guru", placeholder="Nama Lengkap"),
-            "Mata Pelajaran": st.column_config.TextColumn(label="Mata Pelajaran"),
-            "Kode Mapel": st.column_config.TextColumn(label="Kode Mapel", placeholder="Contoh: INF / ING"),
-            "JP per Minggu": st.column_config.NumberColumn(label="JP / Minggu", min_value=1, default=3),
-            "Jumlah Kelas": st.column_config.NumberColumn(label="Jml Kelas", min_value=1, default=1),
-            "Total JP": st.column_config.NumberColumn(label="Total JP (Otomatis)", disabled=True),
+            "No": {"label": "No", "width": "small", "min_value": 1},
+            "Kode Guru": {"label": "Kode Guru", "help": "Contoh: G01"},
+            "Nama Guru": {"label": "Nama Guru", "help": "Nama Lengkap Guru"},
+            "Mata Pelajaran": {"label": "Mata Pelajaran"},
+            "Kode Mapel": {"label": "Kode Mapel", "help": "Contoh: INF / ING"},
+            "JP per Minggu": {"label": "JP / Minggu", "min_value": 1, "default": 3},
+            "Jumlah Kelas": {"label": "Jml Kelas", "min_value": 1, "default": 1},
+            "Total JP": {"label": "Total JP (Otomatis)", "disabled": True},
             "Mengajar Kelas": st.column_config.MultiselectColumn(label="Mengajar Kelas Apa Saja", options=semua_kelas)
         },
         num_rows="dynamic",
