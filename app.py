@@ -6,20 +6,17 @@ import io
 
 st.set_page_config(page_title="Smart Scheduler SMPN 2 Banguntapan", layout="wide")
 
-# Konfigurasi Waktu Dasar Sekolah
 list_hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat']
 tingkatan = ['7', '8', '9']
 abjad = ['A', 'B', 'C', 'D', 'E']
 semua_kelas = [f"{t}{a}" for t in tingkatan for a in abjad]
 
-# Fungsi pembantu untuk membuat singkatan nama guru menjadi 3 digit awal
 def ambil_tiga_digit(nama_kode):
     if pd.isna(nama_kode) or not nama_kode:
         return ""
     nama_str = str(nama_kode).strip()
     return nama_str[:3].upper()
 
-# Data Default Awal jika user tidak mengupload file
 def get_default_data():
     raw_data = [
         {"No": 1, "Kode Guru": "Purwanto", "Nama Guru": "Purwanto, S.Pd.", "Mata Pelajaran": "IPA", "Kode Mapel": "IPA", "JP/Minggu": 5, "Mengajar Kelas": ["7A", "7B", "7C", "7D", "7E"], "Hari Libur/MGMP": ["Kamis"]},
@@ -67,7 +64,6 @@ if 'data_beban_guru' not in st.session_state:
 if 'jadwal_terplot' not in st.session_state:
     st.session_state.jadwal_terplot = []
 
-# Fungsi Ekspor Excel Output (Menggunakan Format 3 Huruf Guru Sesuai Request)
 def export_excel_laporan(plotting_data, kelas_list, hari_list):
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -121,7 +117,7 @@ def export_excel_laporan(plotting_data, kelas_list, hari_list):
                     
                 matches = [d for d in plotting_data if d['hari'] == hari and d['jam'] == jam and d['kelas'] == kelas]
                 if matches:
-                    if len(matches) > 1:
+                    if len(matches) > 1 and "AGM" in matches[0]['kode_mapel']:
                         cell_kbm.value = "AGM (PARALEL)"
                     else:
                         g_3d = ambil_tiga_digit(matches[0]['kode_guru'])
@@ -135,14 +131,12 @@ def export_excel_laporan(plotting_data, kelas_list, hari_list):
     return output
 
 st.title("🏫 AI Smart Timetable - Versi Optimasi Khusus")
-st.subheader("SMPN 2 Banguntapan — Import Excel & Ringkasan Tampilan Kode Guru 3 Digit")
+st.subheader("SMPN 2 Banguntapan — Penempatan Pagi Mapel Esensial & Audit Validasi")
 
-# FITUR UPLOAD EXCEL BARU
 with st.sidebar:
     st.markdown("### 📥 Import Data Guru via Excel")
     uploaded_file = st.file_uploader("Unggah Master Data Kerja (.xlsx)", type=["xlsx"])
     
-    # Tombol untuk mengunduh template format excel agar user tidak bingung
     template_buffer = io.BytesIO()
     get_default_data().to_excel(template_buffer, index=False)
     st.download_button(
@@ -155,7 +149,6 @@ with st.sidebar:
     if uploaded_file is not None:
         try:
             df_upload = pd.read_excel(uploaded_file)
-            # Evaluasi string list kembali seandainya terbaca sebagai text biasa saat di-upload
             if 'Mengajar Kelas' in df_upload.columns:
                 df_upload['Mengajar Kelas'] = df_upload['Mengajar Kelas'].apply(
                     lambda x: eval(x) if isinstance(x, str) and x.startswith('[') else (str(x).split(',') if ',' in str(x) else [str(x)])
@@ -172,13 +165,11 @@ with st.sidebar:
         except Exception as e:
             st.sidebar.error(f"Gagal membaca file: {e}")
 
-tab1, tab2 = st.tabs(["📋 Data Beban Mengajar Guru", "🗓️ Hasil Peta Jadwal KBM"])
+tab1, tab2, tab3 = st.tabs(["📋 Data Beban Mengajar Guru", "🗓️ Hasil Peta Jadwal KBM", "🔍 Laporan Audit Keselarasan Kelas"])
 
 with tab1:
     st.info("💡 Anda bisa mengubah data langsung pada tabel di bawah ini atau menggunakan fitur **Upload Excel** di bilah kiri samping (sidebar).")
-    
     edited_df = st.data_editor(st.session_state.data_beban_guru, use_container_width=True)
-    
     edited_df['Banyak Kelas'] = edited_df['Mengajar Kelas'].apply(lambda x: len(x) if isinstance(x, list) else 0)
     edited_df['Total JP Sepekan'] = edited_df['JP/Minggu'].astype(int) * edited_df['Banyak Kelas']
     st.session_state.data_beban_guru = edited_df
@@ -196,29 +187,25 @@ with tab1:
             t = kelas[0]
             h_opt, j_opt = hari_agama_map[t]
             guru_agama_rombel = df_agama[df_agama['Mengajar Kelas'].apply(lambda x: kelas in x if isinstance(x, list) else False)]
-            
             for _, g_row in guru_agama_rombel.iterrows():
                 for step in range(3):
                     plot_res.append({
-                        "kode_guru": g_row['Kode Guru'],
-                        "kode_mapel": g_row['Mata Pelajaran'].replace("P.A. ", "AGM-"),
+                        "kode_guru": g_row['Kode Guru'], "kode_mapel": "AGM",
                         "kelas": kelas, "hari": h_opt, "jam": j_opt + step
                     })
                     
-        # 2. STRATEGI KUNCI UTAMA: PJOK JAM PERTAMA PAGI
+        # 2. PRIORITAS UTAMA: PJOK JAM PERTAMA PAGI
         df_pjok = edited_df[edited_df['Kode Mapel'] == 'PJOK']
         hari_index = 0
-        
         for _, row in df_pjok.iterrows():
             g_pjok = row['Kode Guru']
             for kelas in row['Mengajar Kelas']:
                 placed = False
                 attempts = 0
-                while not placed and attempts < 10:
+                while not placed and attempts < 15:
                     h_target = list_hari[hari_index % len(list_hari)]
                     hari_index += 1
                     attempts += 1
-                    
                     j_start = 2 if h_target == 'Senin' else 1
                     
                     bentrok = False
@@ -226,10 +213,7 @@ with tab1:
                         chk_j = j_start + step
                         bg = any(d['hari'] == h_target and d['jam'] == chk_j and d['kode_guru'] == g_pjok for d in plot_res)
                         bk = any(d['hari'] == h_target and d['jam'] == chk_j and d['kelas'] == kelas for d in plot_res)
-                        if bg or bk:
-                            bentrok = True
-                            break
-                    
+                        if bg or bk: bentrok = True; break
                     if not bentrok:
                         for step in range(3):
                             plot_res.append({
@@ -238,30 +222,56 @@ with tab1:
                             })
                         placed = True
 
-        # 3. MAPEL BESAR DENGAN SPLIT JEDA HARI
-        df_umum = edited_df[(~edited_df['Mata Pelajaran'].str.contains("P.A.", case=False, na=False)) & (edited_df['Kode Mapel'] != 'PJOK') & (edited_df['Kode Mapel'] != 'BK')]
-        
-        for _, row in df_umum.iterrows():
+        # 3. CRITICAL PRIORITAS BARU: MATEMATIKA & IPA WAJIB DI JAM AWAL (MAKSIMAL JAM KE-5)
+        df_critical = edited_df[edited_df['Kode Mapel'].isin(['MAT', 'IPA'])]
+        for _, row in df_critical.iterrows():
             g_name = row['Kode Guru']
             m_code = row['Kode Mapel']
-            total_jp = int(row['JP/Minggu']) if pd.notna(row['JP/Minggu']) else 0
+            total_jp = int(row['JP/Minggu'])
+            sesi = [3, 2] if total_jp == 5 else [total_jp]
             
-            if total_jp <= 0 or not isinstance(row['Mengajar Kelas'], list): continue
-            
-            if total_jp == 5: sesi = [3, 2]
-            elif total_jp == 6: sesi = [3, 3]
-            elif total_jp == 4: sesi = [2, 2]
-            else: sesi = [total_jp]
-                
             for kelas in row['Mengajar Kelas']:
                 hari_terpakai_kelas = []
                 for jp_sesi in sesi:
                     placed_sesi = False
                     for hari in list_hari:
                         if hari in hari_terpakai_kelas: continue
-                        if hari_terpakai_kelas and abs(list_hari.index(hari) - list_hari.index(hari_terpakai_kelas[-1])) < 2:
-                            continue
+                        # Batasi pencarian jam mulai hanya pada jam awal (Jam 1 s.d Jam 4)
+                        for j_mulai in range(1, 5):
+                            if hari == 'Senin' and j_mulai == 1: continue
                             
+                            bentrok = False
+                            for step in range(jp_sesi):
+                                c_j = j_mulai + step
+                                bg = any(d['hari'] == hari and d['jam'] == c_j and d['kode_guru'] == g_name for d in plot_res)
+                                bk = any(d['hari'] == hari and d['jam'] == c_j and d['kelas'] == kelas for d in plot_res)
+                                if bg or bk: bentrok = True; break
+                            if not bentrok:
+                                for step in range(jp_sesi):
+                                    plot_res.append({
+                                        "kode_guru": g_name, "kode_mapel": m_code,
+                                        "kelas": kelas, "hari": hari, "jam": j_mulai + step
+                                    })
+                                hari_terpakai_kelas.append(hari)
+                                placed_sesi = True
+                                break
+                        if placed_sesi: break
+
+        # 4. MAPEL LAINNYA SISA JAM
+        df_umum = edited_df[(~edited_df['Mata Pelajaran'].str.contains("P.A.", case=False, na=False)) & (~edited_df['Kode Mapel'].isin(['PJOK', 'MAT', 'IPA', 'BK']))]
+        for _, row in df_umum.iterrows():
+            g_name = row['Kode Guru']
+            m_code = row['Kode Mapel']
+            total_jp = int(row['JP/Minggu']) if pd.notna(row['JP/Minggu']) else 0
+            if total_jp <= 0 or not isinstance(row['Mengajar Kelas'], list): continue
+            
+            sesi = [3, 3] if total_jp == 6 else ([2, 2] if total_jp == 4 else [total_jp])
+            for kelas in row['Mengajar Kelas']:
+                hari_terpakai_kelas = []
+                for jp_sesi in sesi:
+                    placed_sesi = False
+                    for hari in list_hari:
+                        if hari in hari_terpakai_kelas: continue
                         max_jam = 6 if hari == 'Jumat' else 9
                         for j_mulai in range(1, max_jam - jp_sesi + 2):
                             if hari == 'Senin' and j_mulai == 1: continue
@@ -271,10 +281,7 @@ with tab1:
                                 c_j = j_mulai + step
                                 bg = any(d['hari'] == hari and d['jam'] == c_j and d['kode_guru'] == g_name for d in plot_res)
                                 bk = any(d['hari'] == hari and d['jam'] == c_j and d['kelas'] == kelas for d in plot_res)
-                                if bg or bk:
-                                    bentrok = True
-                                    break
-                            
+                                if bg or bk: bentrok = True; break
                             if not bentrok:
                                 for step in range(jp_sesi):
                                     plot_res.append({
@@ -287,7 +294,7 @@ with tab1:
                         if placed_sesi: break
 
         st.session_state.jadwal_terplot = plot_res
-        st.success("✔️ Peta Jadwal Berhasil Diperbarui Sesuai Seluruh Aturan Restriksi Baru!")
+        st.success("✔️ Re-Optimasi Berhasil! Matematika & IPA telah dialihkan ke Jam Pagi.")
         st.rerun()
 
 with tab2:
@@ -295,8 +302,8 @@ with tab2:
         st.warning("⚠️ Silakan klik tombol 'Jalankan Engine AI Schedule Optimizer' di Tab 1 terlebih dahulu.")
     else:
         pilihan_kelas = st.selectbox("Pilih Ruang Kelas / Rombel:", semua_kelas, key="sb_kls")
-        
         tabel_tampil = pd.DataFrame(index=list_hari, columns=[f"Jam {i}" for i in range(1, 10)]).fillna("Kosong")
+        
         for h in list_hari:
             bts = 6 if h == 'Jumat' else 9
             for j in range(1, 10):
@@ -309,19 +316,38 @@ with tab2:
                     
                 matches = [d for d in st.session_state.jadwal_terplot if d['hari'] == h and d['jam'] == j and d['kelas'] == pilihan_kelas]
                 if matches:
-                    if len(matches) > 1:
-                        tabel_tampil.at[h, f"Jam {j}"] = "AGM (PARALEL)"
-                    else:
-                        g_singkat = ambil_tiga_digit(matches[0]['kode_guru'])
-                        tabel_tampil.at[h, f"Jam {j}"] = f"{matches[0]['kode_mapel']} ({g_singkat})"
+                    g_singkat = ambil_tiga_digit(matches[0]['kode_guru'])
+                    tabel_tampil.at[h, f"Jam {j}"] = f"{matches[0]['kode_mapel']} ({g_singkat})"
                         
-        st.markdown(f"##### 📅 Preview Jadwal Teroptimasi **Kelas {pilihan_kelas}**")
+        st.markdown(f"##### 📅 Preview Jadwal Teroptimasi **Kelas {pilihan_kelas}** (Eksklusif Jam Pagi untuk MAT/IPA/PJOK)")
         st.dataframe(tabel_tampil, use_container_width=True)
         
         excel_data = export_excel_laporan(st.session_state.jadwal_terplot, semua_kelas, list_hari)
-        st.download_button(
-            label="📥 Download Master Jadwal Excel",
-            data=excel_data,
-            file_name="Master_Jadwal_SMPN2_Banguntapan.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        st.download_button(label="📥 Download Master Jadwal Excel", data=excel_data, file_name="Master_Jadwal_Teroptimasi.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+# TAB LAPORAN AUDIT BARU UNTUK MENDETEKSI JUMLAH MAPEL & KEKOSONGAN
+with tab3:
+    st.markdown("### 🔍 Laporan Validasi Pengisian Kuota 11 Mapel Per Rombel")
+    if not st.session_state.jadwal_terplot:
+        st.info("Jalankan optimasi jadwal terlebih dahulu untuk melihat hasil audit.")
+    else:
+        audit_records = []
+        for kls in semua_kelas:
+            matches_kls = [d for d in st.session_state.jadwal_terplot if d['kelas'] == kls]
+            df_kls = pd.DataFrame(matches_kls)
+            
+            unique_mapel = df_kls['kode_mapel'].nunique() if not df_kls.empty else 0
+            total_jp_terisi = len(df_kls) if not df_kls.empty else 0
+            
+            audit_records.append({
+                "Kelas": kls,
+                "Jumlah Mapel Terplot": unique_mapel,
+                "Total JP Terisi": total_jp_terisi,
+                "Status Kelengkapan (Target: 11 Mapel)": "✅ LENGKAP (11 Mapel)" if unique_mapel >= 11 else f"⚠️ KURANG ({11 - unique_mapel} Mapel Belum Terdaftar)"
+            })
+            
+        df_audit = pd.DataFrame(audit_records)
+        st.dataframe(df_audit, use_container_width=True)
+        
+        st.markdown("### 💡 Analisis Mengapa Ada Slot Kosong:")
+        st.write("Jika status di atas menunjukkan **⚠️ KURANG**, artinya beban mengajar guru yang Anda masukkan di Tab 1 belum lengkap mencakup 11 mata pelajaran untuk kelas tersebut. Silakan tambahkan baris guru baru di Tab 1 atau perbaiki daftar kelas mengajar pada file Excel Anda!")
