@@ -130,19 +130,19 @@ with tab1:
     st.subheader("Form Input Detail Mengajar Guru")
     st.info("Silakan isi tabel di bawah ini. Anda bisa menambah baris baru dengan menekan tombol **(+) Add Row** di bagian bawah tabel.")
     
-    # Menggunakan st.data_editor dengan kolom terkonfigurasi khusus
+    # Menggunakan st.data_editor dengan kolom yang sudah diperbaiki (Fix label=)
     edited_df = st.data_editor(
         st.session_state.data_beban_guru,
         column_config={
-            "No": st.column_config.NumberColumn("No", width="small", min_value=1),
-            "Kode Guru": st.column_config.TextColumn("Kode Guru", placeholder="Contoh: G01"),
-            "Nama Guru": st.column_config.TextColumn("Nama Guru", placeholder="Nama Lengkap"),
-            "Mata Pelajaran": st.column_config.TextColumn("Mata Pelajaran"),
-            "Kode Mapel": st.column_config.TextColumn("Kode Mapel", placeholder="Contoh: INF / ING"),
-            "JP per Minggu": st.column_config.NumberColumn("JP / Minggu", min_value=1, default=3),
-            "Jumlah Kelas": st.column_config.NumberColumn("Jml Kelas", min_value=1, default=1),
-            "Total JP": st.column_config.NumberColumn("Total JP (Otomatis)", disabled=True),
-            "Mengajar Kelas": st.column_config.MultiselectColumn("Mengajar Kelas Apa Saja", options=semua_kelas)
+            "No": st.column_config.NumberColumn(label="No", width="small", min_value=1),
+            "Kode Guru": st.column_config.TextColumn(label="Kode Guru", placeholder="Contoh: G01"),
+            "Nama Guru": st.column_config.TextColumn(label="Nama Guru", placeholder="Nama Lengkap"),
+            "Mata Pelajaran": st.column_config.TextColumn(label="Mata Pelajaran"),
+            "Kode Mapel": st.column_config.TextColumn(label="Kode Mapel", placeholder="Contoh: INF / ING"),
+            "JP per Minggu": st.column_config.NumberColumn(label="JP / Minggu", min_value=1, default=3),
+            "Jumlah Kelas": st.column_config.NumberColumn(label="Jml Kelas", min_value=1, default=1),
+            "Total JP": st.column_config.NumberColumn(label="Total JP (Otomatis)", disabled=True),
+            "Mengajar Kelas": st.column_config.MultiselectColumn(label="Mengajar Kelas Apa Saja", options=semua_kelas)
         },
         num_rows="dynamic",
         use_container_width=True,
@@ -159,7 +159,6 @@ with tab1:
         st.session_state.jadwal_terplot = [] # Reset data lama
         
         # Dictionary untuk mencatat posisi jam terakhir yang terisi di tiap kelas & hari
-        # Format: pointer_kbm[hari][kelas] = jam_ke
         pointer_kbm = {h: {k: (2 if h == 'Senin' else 1) for k in semua_kelas} for h in list_hari}
         
         for _, row in edited_df.iterrows():
@@ -181,13 +180,13 @@ with tab1:
                         break
                         
                     max_jam = 6 if hari == 'Jumat' else 9
-                    # Batasi maksimal jam per mapel dalam satu hari agar tidak bosan (misal maks 3 JP per hari)
+                    # Batasi maksimal jam per mapel dalam satu hari agar tidak padat (maks 3 JP per hari)
                     alokasi_hari_ini = min(jp_tersisa, 3 if hari != 'Jumat' else 2)
                     
                     jam_mulai = pointer_kbm[hari][kelas]
                     
                     if jam_mulai + alokasi_hari_ini - 1 <= max_jam:
-                        # Cek bentrok guru di jam tersebut
+                        # Cek bentrok guru di jam tersebut lintas kelas
                         bentrok = False
                         for step in range(alokasi_hari_ini):
                             target_j = jam_mulai + step
